@@ -513,7 +513,13 @@ try{
 const net={ws:null,url:'',id:null,lobby:null,scr:null,tp:0,iv:null,cbs:[],lobbies:[],online:0,fromPause:false};
 let myName='';try{myName=localStorage.getItem('pn')||''}catch(e){}if(!myName)myName='Игрок'+(100+R()*900|0);
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function srvAddr(){let u='';try{u=localStorage.getItem('srv')||''}catch(e){}if(!u&&/^https?:$/.test(location.protocol)&&!window.claude)u=location.host;return u}
+function srvAddr(){
+  // When the game is served by the Render server itself, always use the current host.
+  // This prevents an old localStorage 'srv' value from breaking WebSocket connections.
+  if(/^https?:$/.test(location.protocol)&&!window.claude)return location.host;
+  let u='';try{u=localStorage.getItem('srv')||''}catch(e){}
+  return u
+}
 function wsUrl(u){u=String(u||'').trim().replace(/^(wss?|https?):\/\//,'').replace(/\/.*$/,'');if(!u)return '';return (/^(localhost|127\.|192\.168\.|10\.)/.test(u)?'ws://':'wss://')+u}
 function send(o){if(net.ws&&net.ws.readyState===1)net.ws.send(JSON.stringify(o))}
 function relay(to,d){send({t:'r',to,d})}
