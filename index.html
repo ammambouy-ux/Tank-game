@@ -303,7 +303,7 @@ function spawn(){
   for(let k=0;k<25;k++){
     const g=R()*6.28,dd=SW*.5+R()*U*6,e={x:Math.max(U,Math.min(W-U,T.x+Math.cos(g)*dd)),y:Math.max(U,Math.min(H-U,T.y+Math.sin(g)*dd*.7))};
     if(!hitsWall(e.x,e.y,U*s.s)&&al.every(p=>Math.hypot(e.x-p.x,e.y-p.y)>U*7)){
-        en.push({...e,...s,id:EID++,k:type,hp:s.hp*hpMul,mh:s.hp*hpMul,xp:Math.ceil(s.hp*4+3),sc:s.hp*60,a:0,t:0,r:U*.75*s.s,cool:(isBoss?.7:1)+R()*(isBoss?.7:1.5),dir:R()<.5?1:-1,slow:0,boss:isBoss,dmgMul:isBoss?(1.22+wave*.012):1,rc:0,st2:0,chargeLeft:0,chargeFx:0,aimX:T.x,aimY:T.y,aimVx:0,aimVy:0,targetId:null,artPat:-1});
+        en.push({...e,...s,id:EID++,k:type,hp:s.hp*hpMul,mh:s.hp*hpMul,xp:Math.ceil(s.hp*4+3),sc:s.hp*60,a:0,t:0,r:U*.75*s.s,cool:(isBoss?.7:1)+R()*(isBoss?.7:1.5),spawnCd:0,dir:R()<.5?1:-1,slow:0,boss:isBoss,dmgMul:isBoss?(1.22+wave*.012):1,rc:0,st2:0,chargeLeft:0,chargeFx:0,aimX:T.x,aimY:T.y,aimVx:0,aimVy:0,targetId:null,artPat:-1});
       return;
     }
   }
@@ -397,17 +397,40 @@ function update(dt){
       else if(e.tick==null&&e.cool<=0&&d<U*13&&state==='play'){shoot(e,0,U*8,10);e.cool=1.8+R()}
     }
     else if(e.k==9){
+      // Улeй одновременно поддерживает свою свиту и сам ведёт огонь.
+      // Новая группа дронов появляется только после полного уничтожения предыдущей.
       const aliveMinions=en.filter(o=>o.hiveId===e.id&&!o.dead).length;
-      if(aliveMinions===0&&e.cool<=0&&state==='play'){
+      if(aliveMinions===0&&e.spawnCd<=0&&state==='play'){
         let made=0;
-        for(let q=0;q<28&&made<HIVE_MAX_MINIONS;q++){
+        for(let q=0;q<40&&made<HIVE_MAX_MINIONS;q++){
           const g2=R()*6.28,dd2=U*(1.8+R()*1.1),dxp=e.x+Math.cos(g2)*dd2,dyp=e.y+Math.sin(g2)*dd2;
           if(!hitsWall(dxp,dyp,U*.5)&&PL.every(p=>Math.hypot(dxp-p.x,dyp-p.y)>U*2)){
-            en.push({id:EID++,x:dxp,y:dyp,hp:2.5,mh:2.5,sp:4.8,s:.68,c:'#e8e04a',d:'#8a8420',k:1,xp:5,sc:35,a:0,t:0,r:U*.75*.68,cd:1.45,cool:1.0+R()*.7,dir:R()<.5?1:-1,slow:0,hiveId:e.id,boss:false,dmgMul:1});
+            en.push({id:EID++,x:dxp,y:dyp,hp:2.5,mh:2.5,sp:4.8,s:.68,c:'#e8e04a',d:'#8a8420',k:1,xp:5,sc:35,a:0,t:0,r:U*.48,cd:1.15,cool:.65+R()*.55,dir:R()<.5?1:-1,slow:0,hiveId:e.id,boss:false,dmgMul:1,wing:0});
             made++;
           }
         }
-        e.cool=3.4+R();
+        // Если из-за стен/игроков удалось создать меньше 10, всё равно ждём полной зачистки.
+        e.spawnCd=3.1+R()*.7;
+      }
+      e.spawnCd-=dt;
+      if(e.cool<=0&&d<U*18&&state==='play'){
+        const a=predictAim(e,T,.35,U*(.35+R()*.35));
+        e.t=Math.atan2(a.y-e.y,a.x-e.x);
+        shoot(e,0,U*8.5,Math.round(15*e.dmgMul),-0.12);
+        shoot(e,0,U*8.5,Math.round(15*e.dmgMul),0.12);
+        e.cool=2.0+R()*.7;
+        fx(e.x,e.y,8);
+      }
+    }
+    else if(e.k==1&&e.hiveId){
+      // Дрон — отдельный тип с собственным таймером стрельбы; это исключает
+      // зависимость от общей логики танковых врагов и гарантирует повторные залпы.
+      if(e.cool<=0&&d<U*15&&state==='play'){
+        const lead=.28+Math.min(.25,d/(U*15)*.15);
+        const a=predictAim(e,T,lead,U*(.25+R()*.3));
+        e.t=Math.atan2(a.y-e.y,a.x-e.x);
+        shoot(e,0,U*10.5,9,0);
+        e.cool=1.0+R()*.35;
       }
     }
     else if(e.k==7){
@@ -508,6 +531,22 @@ function guestUpdate(dt){
 }
 function drawTank(ctx,u,t,c1,c2,s){
   ctx.save();ctx.translate(t.x,t.y);
+  if(t.hiveId&&t.k==1){
+    // Дрон — воздушный мини-юнит, а не уменьшенная модель танка.
+    const r=u*.62*s, flap=u*.52*s, pulse=.9+.1*Math.sin(performance.now()/110+(t.id||0));
+    ctx.rotate(t.a);
+    ctx.globalAlpha=.28;ctx.fillStyle='#f6ef9a';
+    ctx.beginPath();ctx.ellipse(-r*.25,-flap*.72,r*.72,flap*.42,-.35,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(r*.25,flap*.72,r*.72,flap*.42,.35,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#171712';ctx.beginPath();ctx.ellipse(0,0,r*.9,r*.62,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#e8c42f';ctx.beginPath();ctx.ellipse(0,0,r*.72,r*.44,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#8a8420';ctx.fillRect(-r*.12,-r*.58,r*.24,r*.36);
+    ctx.fillStyle='#ff6a3d';ctx.beginPath();ctx.arc(r*.48,0,r*.13*pulse,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#4f4b16';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.restore();
+    return;
+  }
   if(t.k==6&&t.tick!=null){const p=1-t.tick/1.3;ctx.strokeStyle='rgba(255,60,40,'+(0.25+0.5*p)+')';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,u*1.2+u*2.3*p,0,6.28);ctx.stroke()}
   ctx.rotate(t.a);
   const l=u*.95*s,w=u*.72*s;
@@ -801,7 +840,7 @@ function sendSnap(){
   const q=Math.round,a2=v=>Math.round(v*100)/100,o1=v=>Math.round(v*10)/10;
   relay('all',{k:'snap',w:wave,sc:score|0,rs:rest>0?o1(rest):0,
     pl:PL.map(p=>[p.id,q(p.x),q(p.y),a2(p.a),a2(p.t),q(p.hp),p.max,p.dead?1:0,p.ch?1:0,p.lvl,q(p.xp),p.need,p.fire?1:0]),
-    en:en.map(e=>[e.id,e.k,q(e.x),q(e.y),a2(e.a),a2(e.t),o1(e.hp),o1(e.mh),e.s,e.tick==null?-1:a2(e.tick),e.st2||0,a2(e.rdx||0),a2(e.rdy||0)]),
+    en:en.map(e=>[e.id,e.k,q(e.x),q(e.y),a2(e.a),a2(e.t),o1(e.hp),o1(e.mh),e.s,e.tick==null?-1:a2(e.tick),e.st2||0,a2(e.rdx||0),a2(e.rdy||0),e.hiveId||0]),
     bl:bl.map(b=>[q(b.x),q(b.y),q(b.vx),q(b.vy),b.own?1:0]),
     zn:zn.map(z=>[q(z.x),q(z.y),q(z.r),a2(z.t),z.m,z.k,z.p||0]),
     pk:pk.map(k=>[q(k.x),q(k.y)]),
@@ -821,7 +860,7 @@ function applySnap(d){
     else{p.tx=a[1];p.ty=a[2];p.a=a[3];p.t=a[4];p.fire=!!a[12]}}
   const m=new Map(en.map(e=>[e.id,e]));
   en=d.en.map(a=>{let e=m.get(a[0]);if(!e)e={id:a[0],x:a[2],y:a[3]};
-    e.k=a[1];e.tx=a[2];e.ty=a[3];e.a=a[4];e.t=a[5];e.hp=a[6];e.mh=a[7];e.s=a[8];e.tick=a[9]<0?null:a[9];e.st2=a[10];e.rdx=a[11];e.rdy=a[12];e.r=U*.75*e.s;e.c=TCOL[e.k][0];e.d=TCOL[e.k][1];return e});
+    e.k=a[1];e.tx=a[2];e.ty=a[3];e.a=a[4];e.t=a[5];e.hp=a[6];e.mh=a[7];e.s=a[8];e.tick=a[9]<0?null:a[9];e.st2=a[10];e.rdx=a[11];e.rdy=a[12];e.hiveId=a[13]||0;e.r=e.hiveId&&e.k==1?U*.48:U*.75*e.s;e.c=TCOL[e.k][0];e.d=TCOL[e.k][1];return e});
   bl=d.bl.map(a=>({x:a[0],y:a[1],vx:a[2],vy:a[3],own:!!a[4]}));
   zn=(d.zn||[]).map(a=>({x:a[0],y:a[1],r:a[2],t:a[3],m:a[4],k:a[5],p:a[6]||0}));
   pk=d.pk.map(a=>({x:a[0],y:a[1]}));
