@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: steel-frontier
-    runtime: node
-    plan: free
-    buildCommand: npm install
-    startCommand: npm start
-    healthCheckPath: /health
-    maxShutdownDelaySeconds: 10
