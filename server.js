@@ -1,8 +1,10 @@
-// Сервер лобби для "Стального рубежа": раздаёт игру (index.html) и пересылает сообщения внутри лобби.
-const http = require('http'), fs = require('fs'), path = require('path');
+// Сервер лобби для "Стального рубежа": раздаёт игру и пересылает сообщения внутри лобби.
+// Поддерживает кратковременное восстановление WebSocket-соединения без выброса игрока из боя.
+const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 3000;
 const INDEX = path.join(__dirname, 'index.html');
+const DISCONNECT_GRACE_MS = 60_000;
 
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.writeHead(200); res.end('ok'); return; }
@@ -26,7 +28,9 @@ wss.on('error', err => {
   console.error('Ошибка WebSocket-сервера:', err);
   process.exit(1);
 });
-const clients = new Map();   // id -> client
+
+const clients = new Map();   // id -> client, включая игроков в коротком окне переподключения
+const sessions = new Map();  // resumeToken -> client
 const lobbies = new Map();   // code -> lobby
 let NID = 1;
 const CH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -35,47 +39,107 @@ let shuttingDown = false;
 
 const clean = (s, n, d) => String(s == null ? '' : s).replace(/[<>&"'`]/g, '').trim().slice(0, n) || d;
 const newCode = () => { for (;;) { let c = ''; for (let i = 0; i < 4; i++) c += CH[Math.random() * CH.length | 0]; if (!lobbies.has(c)) return c; } };
+const newToken = () => crypto.randomBytes(24).toString('hex');
+const connectedCount = () => { let n = 0; for (const c of clients.values()) if (c.connected && c.ws) n++; return n; };
 const jsend = (c, o) => {
   if (shuttingDown || !c || !c.ws || c.ws.readyState !== 1) return;
   try { c.ws.send(JSON.stringify(o)); } catch (e) {}
 };
 const info = L => ({ t: 'lobby', code: L.code, name: L.name, lock: !!L.pass, host: L.host, started: L.started, max: MAXP, min: MINP,
-  players: L.players.map(p => ({ id: p.id, name: p.name, tk: p.tk })) });
+  players: L.players.map(p => ({ id: p.id, name: p.name, tk: p.tk, connected: !!p.connected })) });
 const bcast = (L, o) => L.players.forEach(p => jsend(p, o));
 
+function revokeSession(c) {
+  if (c.graceTimer) { clearTimeout(c.graceTimer); c.graceTimer = null; }
+  if (c.token) sessions.delete(c.token);
+  c.disconnectedUntil = 0;
+}
+
 function leave(c) {
-  const L = c.lobby; if (!L) return;
-  c.lobby = null; L.players = L.players.filter(p => p !== c);
-  if (!L.players.length) { lobbies.delete(L.code); return; }
+  const L = c.lobby; if (!L) { revokeSession(c); return; }
+  revokeSession(c);
+  c.lobby = null;
+  L.players = L.players.filter(p => p !== c);
+  if (!L.players.length) { lobbies.delete(L.code); clients.delete(c.id); return; }
   if (L.host === c.id) {
-    if (L.started) { // хост ушёл посреди боя — симуляция потеряна, игра заканчивается
+    if (L.started) { // хост ушёл окончательно — симуляция потеряна, игра заканчивается
       L.players.forEach(p => { p.lobby = null; jsend(p, { t: 'end', msg: 'Хост вышел из игры' }); });
-      lobbies.delete(L.code); return;
+      lobbies.delete(L.code);
+    } else {
+      L.host = L.players[0].id;
+      bcast(L, info(L));
     }
-    L.host = L.players[0].id;
+  } else {
+    bcast(L, info(L));
+    if (L.started) bcast(L, { t: 'left', id: c.id });
   }
-  bcast(L, info(L));
-  if (L.started) bcast(L, { t: 'left', id: c.id });
+  clients.delete(c.id);
+}
+
+function deferDisconnect(c) {
+  if (c.disconnectedUntil || !c.lobby) {
+    if (!c.lobby) { revokeSession(c); clients.delete(c.id); }
+    return;
+  }
+  c.connected = false;
+  c.disconnectedUntil = Date.now() + DISCONNECT_GRACE_MS;
+  c.graceTimer = setTimeout(() => {
+    if (c.connected || !c.lobby || Date.now() < c.disconnectedUntil) return;
+    leave(c);
+  }, DISCONNECT_GRACE_MS + 100);
+  if (c.lobby.started) bcast(c.lobby, { t: 'disconnecting', id: c.id });
+  else bcast(c.lobby, info(c.lobby));
 }
 
 wss.on('connection', ws => {
-  const c = { ws, id: NID++, name: 'Игрок', tk: 'std', lobby: null, alive: true, n: 0, tw: Date.now() };
+  let c = { ws, id: NID++, name: 'Игрок', tk: 'std', lobby: null, connected: true, alive: true, n: 0, tw: Date.now(), token: newToken(), disconnectedUntil: 0, graceTimer: null };
+  sessions.set(c.token, c);
   clients.set(c.id, c);
-  ws.on('pong', () => { c.alive = true; });
+
+  ws.on('pong', () => { if (c.ws === ws) c.alive = true; });
   ws.on('error', () => {});
-  ws.on('close', () => { leave(c); clients.delete(c.id); });
+  ws.on('close', () => {
+    // После resume c.ws указывает уже на новый сокет, поэтому старый close ничего не ломает.
+    if (c.ws !== ws) return;
+    c.ws = null;
+    c.alive = false;
+    deferDisconnect(c);
+  });
   ws.on('message', raw => {
     const now = Date.now();
+    if (!c.connected || c.ws !== ws) return;
     if (now - c.tw > 2000) { c.tw = now; c.n = 0; }
-    if (++c.n > 300) { ws.close(); return; }          // защита от флуда
+    if (++c.n > 300) { ws.close(); return; }
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
+
     switch (m.t) {
-      case 'hello':
-        c.name = clean(m.pn, 14, 'Игрок'); c.tk = clean(m.tk, 12, 'std');
-        jsend(c, { t: 'hi', id: c.id, online: clients.size }); break;
+      case 'hello': {
+        const rt = clean(m.resume, 64, '');
+        const old = rt ? sessions.get(rt) : null;
+        if (old && old !== c && !old.connected && old.lobby && old.disconnectedUntil > Date.now()) {
+          clients.delete(c.id);
+          sessions.delete(c.token);
+          if (old.graceTimer) { clearTimeout(old.graceTimer); old.graceTimer = null; }
+          c = old;
+          c.ws = ws;
+          c.connected = true;
+          c.alive = true;
+          c.disconnectedUntil = 0;
+          c.n = 0;
+          c.tw = Date.now();
+          jsend(c, { t: 'hi', id: c.id, online: connectedCount(), resume: c.token, resumed: true });
+          jsend(c, info(c.lobby));
+          if (c.lobby.started) jsend(c, { t: 'resume', started: true });
+          break;
+        }
+        c.name = clean(m.pn, 14, c.name);
+        c.tk = clean(m.tk, 12, c.tk);
+        jsend(c, { t: 'hi', id: c.id, online: connectedCount(), resume: c.token, resumed: false });
+        break;
+      }
       case 'list':
-        jsend(c, { t: 'list', online: clients.size, lobbies: [...lobbies.values()].map(L => ({
+        jsend(c, { t: 'list', online: connectedCount(), lobbies: [...lobbies.values()].map(L => ({
           code: L.code, name: L.name, n: L.players.length, max: MAXP, lock: !!L.pass, started: L.started })) }); break;
       case 'create': {
         if (c.lobby) leave(c);
@@ -107,10 +171,11 @@ wss.on('connection', ws => {
         let pkt;
         try { pkt = JSON.stringify({ t: 'r', from: c.id, d: m.d }); } catch (e) { break; }
         if (pkt.length > 96 * 1024) break;
-        if (m.to === 'all') L.players.forEach(p => { if (p !== c && p.ws.readyState === 1) p.ws.send(pkt); });
+        const out = { t: 'r', from: c.id, d: m.d };
+        if (m.to === 'all') L.players.forEach(p => { if (p !== c) jsend(p, out); });
         else {
           const tg = m.to === 'host' ? L.players.find(p => p.id === L.host) : L.players.find(p => p.id === m.to);
-          if (tg && tg !== c && tg.ws.readyState === 1) tg.ws.send(pkt);
+          if (tg && tg !== c) jsend(tg, out);
         }
         break;
       }
@@ -121,10 +186,11 @@ wss.on('connection', ws => {
 // keep-alive: Render разрывает «молчащие» соединения
 const heartbeat = setInterval(() => {
   for (const c of clients.values()) {
+    if (!c.connected || !c.ws) continue;
     if (!c.alive) { try { c.ws.terminate(); } catch (e) {} continue; }
     c.alive = false; try { c.ws.ping(); } catch (e) {}
   }
-}, 25000);
+}, 25_000);
 
 function shutdown(signal) {
   if (shuttingDown) return;
@@ -132,12 +198,12 @@ function shutdown(signal) {
   console.log(`Получен ${signal}, завершаю сервер…`);
   clearInterval(heartbeat);
   for (const c of clients.values()) {
-    try { c.ws.close(1001, 'Server shutdown'); } catch (e) {}
+    if (c.graceTimer) clearTimeout(c.graceTimer);
+    try { if (c.ws) c.ws.close(1001, 'Server shutdown'); } catch (e) {}
   }
   wss.close(() => {
     server.close(() => process.exit(0));
   });
-  // Не зависаем при подвисшем соединении.
   setTimeout(() => process.exit(0), 10000).unref();
 }
 
