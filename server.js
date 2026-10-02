@@ -3,11 +3,117 @@
 const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 3000;
+const GAME_VERSION = '1.1.0';
+const ADMIN_KEY = String(process.env.ADMIN_KEY || '').trim();
+const adminSessions = new Map();
+const ADMIN_SESSION_MS = 8 * 60 * 60 * 1000;
 const INDEX = path.join(__dirname, 'index.html');
+const ADMIN_HTML = path.join(__dirname, 'admin.html');
 const DISCONNECT_GRACE_MS = 60_000;
 
-const server = http.createServer((req, res) => {
-  if (req.url === '/health') { res.writeHead(200); res.end('ok'); return; }
+function sendJson(res, code, data, extra={}) {
+  const body = JSON.stringify(data);
+  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...extra });
+  res.end(body);
+}
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body='';
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > 64 * 1024) { reject(new Error('payload too large')); req.destroy(); }
+    });
+    req.on('end', () => {
+      if (!body) return resolve({});
+      try { resolve(JSON.parse(body)); } catch (e) { reject(new Error('invalid json')); }
+    });
+    req.on('error', reject);
+  });
+}
+function adminToken(req) {
+  const m = String(req.headers.authorization || '').match(/^Bearer\s+(.+)$/i);
+  return m ? m[1].trim() : '';
+}
+function adminAuthorized(req) {
+  if (!ADMIN_KEY) return false;
+  const token = adminToken(req), exp = adminSessions.get(token);
+  if (!token || !exp || exp < Date.now()) { if (token) adminSessions.delete(token); return false; }
+  adminSessions.set(token, Date.now() + ADMIN_SESSION_MS);
+  return true;
+}
+function adminLogin(req, res, key) {
+  if (!ADMIN_KEY || key !== ADMIN_KEY) return sendJson(res, 401, { ok:false, error:'Неверный ключ' });
+  const token = crypto.randomBytes(32).toString('hex');
+  adminSessions.set(token, Date.now() + ADMIN_SESSION_MS);
+  sendJson(res, 200, { ok:true, token, version:GAME_VERSION });
+}
+function adminPlayers() {
+  return [...clients.values()].map(c => ({ id:c.id, name:c.name, connected:!!c.connected, lobby:c.lobby?.code || null, lobbyName:c.lobby?.name || null, host:c.lobby?.host===c.id, started:!!c.lobby?.started }));
+}
+function adminLobbies() {
+  return [...lobbies.values()].map(L => ({ code:L.code, name:L.name, host:L.host, started:L.started, players:L.players.length, max:MAXP, lock:!!L.pass, members:L.players.map(p=>({id:p.id,name:p.name,connected:!!p.connected})) }));
+}
+function closeLobby(L, msg='Лобби закрыто администратором') {
+  if (!L) return false;
+  if (L.started) L.players.forEach(p => { p.lobby=null; jsend(p,{t:'end',msg}); });
+  else L.players.forEach(p => { p.lobby=null; jsend(p,{t:'admin',msg}); });
+  L.players.forEach(p=>{ revokeSession(p); try{p.ws?.close(4002,'Lobby closed by admin')}catch(e){} });
+  for (const p of L.players) clients.delete(p.id);
+  lobbies.delete(L.code);
+  return true;
+}
+async function handleAdmin(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  if (url.pathname === '/admin' && req.method === 'GET') {
+    fs.readFile(ADMIN_HTML, (e,d)=>{
+      if (e) return sendJson(res,404,{ok:false,error:'admin.html not found'});
+      res.writeHead(200, {'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}); res.end(d);
+    });
+    return true;
+  }
+  if (!url.pathname.startsWith('/api/admin/')) return false;
+  if (url.pathname === '/api/admin/login' && req.method === 'POST') {
+    try { const b=await readBody(req); return adminLogin(req,res,String(b.key||'')); } catch(e) { return sendJson(res,400,{ok:false,error:e.message}); }
+  }
+  if (!adminAuthorized(req)) { sendJson(res,401,{ok:false,error:'Требуется авторизация'}); return true; }
+  if (url.pathname === '/api/admin/status' && req.method === 'GET') {
+    return sendJson(res,200,{ok:true,version:GAME_VERSION,uptime:Math.floor(process.uptime()),online:connectedCount(),clients:clients.size,lobbies:adminLobbies(),players:adminPlayers()});
+  }
+  if (url.pathname === '/api/admin/action' && req.method === 'POST') {
+    try {
+      const b=await readBody(req); const action=String(b.action||'');
+      if(action==='broadcast'){
+        const msg=clean(b.message,240,''); if(!msg) return sendJson(res,400,{ok:false,error:'Сообщение пустое'});
+        for(const c of clients.values()) jsend(c,{t:'admin',msg});
+        return sendJson(res,200,{ok:true});
+      }
+      if(action==='kick'){
+        const id=Number(b.id), c=clients.get(id); if(!c) return sendJson(res,404,{ok:false,error:'Игрок не найден'});
+        leave(c);
+        try{c.ws?.close(4001,'Kicked by admin')}catch(e){}
+        return sendJson(res,200,{ok:true});
+      }
+      if(action==='closeLobby'){
+        const code=String(b.code||'').toUpperCase().trim(), L=lobbies.get(code); if(!L) return sendJson(res,404,{ok:false,error:'Лобби не найдено'});
+        closeLobby(L); return sendJson(res,200,{ok:true});
+      }
+      if(action==='restart'){
+        sendJson(res,200,{ok:true});
+        setTimeout(()=>shutdown('ADMIN_RESTART'),250);
+        return true;
+      }
+      if(action==='logout'){
+        const token=adminToken(req); adminSessions.delete(token); return sendJson(res,200,{ok:true});
+      }
+      return sendJson(res,400,{ok:false,error:'Неизвестное действие'});
+    } catch(e) { return sendJson(res,400,{ok:false,error:e.message}); }
+  }
+  sendJson(res,404,{ok:false,error:'not found'}); return true;
+}
+
+const server = http.createServer(async (req, res) => {
+  if (await handleAdmin(req,res)) return;
+  if (req.url === '/health') { sendJson(res,200,{ok:true,version:GAME_VERSION,online:connectedCount(),lobbies:lobbies.size}); return; }
   if (req.url === '/' || req.url.startsWith('/index.html')) {
     fs.readFile(INDEX, (e, d) => {
       if (e) { res.writeHead(404); res.end('index.html not found'); return; }

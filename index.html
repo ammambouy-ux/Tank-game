@@ -84,8 +84,9 @@ button:disabled{opacity:.5}
 <body>
 <canvas id="c"></canvas>
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
-<div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
+<div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="bs"></div><script>
+const GAME_VERSION='1.1.0';
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const $=id=>document.getElementById(id);
 let W,H,SW,SH,SPX,SPY,SU,VS,camx=0,camy=0,U,dpr,state='menu',best=0;
@@ -658,6 +659,8 @@ $('bb').onclick=enemyScreen;
 $('gg').onclick=garageScreen;
 $('bft').onclick=()=>{bfC=!bfC;$('bft').classList.toggle('cl',bfC);$('bfl').classList.toggle('cl',bfC)};
 coinLabel();
+$('ver').textContent='Версия '+GAME_VERSION;
+$('adm').onclick=()=>{location.href='/admin'};
 function pmRefresh(){
   const L=net.lobby,host=!!(L&&L.host===net.id&&!L.started&&!online);
   $('pmi').textContent=online?('Онлайн: код '+(L?L.code:'')+' · игроков '+PL.length+'. В онлайне мир не встаёт на паузу.'):host?('Код: '+L.code+' · Игроков: '+L.players.length+'/'+L.max+' (нужно минимум '+L.min+')'):'';
@@ -775,6 +778,7 @@ function netErr(msg){
   else showBanner('⚠',msg);
 }
 function netMsg(m){
+  if(m.t==='admin'){showBanner('СООБЩЕНИЕ АДМИНИСТРАТОРА',m.msg||'');return}
   switch(m.t){
     case 'list':net.lobbies=m.lobbies||[];net.online=m.online;if(net.scr==='list')renderList();break;
     case 'lobby':net.lobby=m;lobChip();

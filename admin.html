@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#141a10"><title>Админ · Стальной рубеж</title>
+<style>
+:root{--bg:#151b11;--panel:#202a19;--line:#3b4a2d;--fg:#f1ead2;--acc:#e8b33a;--bad:#d9573f;--ok:#7bdc7b}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#26331e,#11150e 70%);color:var(--fg);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;padding:20px}.wrap{max-width:1000px;margin:auto}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.top h1{margin:0;color:var(--acc);font-weight:500}.muted{opacity:.65;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:16px}.card{background:#0005;border:1px solid var(--line);border-radius:8px;padding:14px}.card h2{margin:0 0 10px;font-size:18px;font-weight:500}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.stat{font-size:28px}.list{display:flex;flex-direction:column;gap:7px;max-height:360px;overflow:auto}.item{background:var(--panel);border:1px solid var(--line);padding:9px;border-radius:6px;display:flex;justify-content:space-between;gap:8px;align-items:center}.item small{opacity:.7}input,textarea{width:100%;font:inherit;background:#162015;color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:9px}textarea{min-height:80px;resize:vertical}button{font:inherit;border:1px solid #7a5a10;background:#e8b33a;color:#18130a;border-radius:5px;padding:8px 12px;cursor:pointer;font-weight:600}button.alt{background:#2b3a22;color:var(--fg);border-color:var(--line)}button.danger{background:var(--bad);border-color:#8f2f20;color:white}.hidden{display:none!important}.msg{margin-top:10px;min-height:18px}.ok{color:var(--ok)}.bad{color:#ff9b88}code{color:var(--acc)}
+</style></head><body><div class="wrap">
+<div class="top"><div><h1>Админ-панель</h1><div class="muted">Стальной рубеж · <span id="ver">—</span></div></div><div class="row"><button id="refresh" class="alt">Обновить</button><button id="logout" class="alt">Выйти</button></div></div>
+<div id="login" class="card" style="max-width:430px;margin:30px auto"><h2>Вход</h2><input id="key" type="password" autocomplete="current-password" placeholder="ADMIN_KEY"><div class="row" style="margin-top:9px"><button id="loginBtn">Войти</button></div><div id="loginMsg" class="msg muted"></div></div>
+<div id="app" class="hidden"><div class="grid">
+<div class="card"><h2>Сервер</h2><div class="row"><div><div class="muted">Онлайн</div><div id="online" class="stat">0</div></div><div><div class="muted">Лобби</div><div id="lobbiesCount" class="stat">0</div></div><div><div class="muted">Uptime</div><div id="uptime" class="stat">0м</div></div></div></div>
+<div class="card"><h2>Сообщение игрокам</h2><textarea id="broadcast" maxlength="240" placeholder="Текст объявления"></textarea><div class="row" style="margin-top:9px"><button id="sendBroadcast">Отправить</button></div></div>
+<div class="card"><h2>Управление</h2><div class="muted">Перезапуск завершит текущие подключения и попросит Render поднять новый процесс.</div><div class="row" style="margin-top:10px"><button id="restart" class="danger">Перезапустить сервер</button></div></div>
+</div>
+<div class="grid">
+<div class="card"><h2>Игроки</h2><div id="players" class="list"></div></div>
+<div class="card"><h2>Лобби</h2><div id="lobbies" class="list"></div></div>
+</div><div id="msg" class="msg muted"></div></div></div>
+<script>
+const $=id=>document.getElementById(id);let token=sessionStorage.getItem('adminToken')||'';let timer=null;
+function msg(t,bad=false){$('msg').textContent=t;$('msg').className='msg '+(bad?'bad':'ok')}
+async function api(path,opt={}){const h={'Content-Type':'application/json',...(opt.headers||{})};if(token)h.Authorization='Bearer '+token;const r=await fetch(path,{...opt,headers:h});let d={};try{d=await r.json()}catch(e){}if(r.status===401){token='';sessionStorage.removeItem('adminToken');showLogin();throw new Error(d.error||'Нужен вход')}if(!r.ok)throw new Error(d.error||'Ошибка');return d}
+function showLogin(){$('app').classList.add('hidden');$('login').classList.remove('hidden')}
+function showApp(){$('login').classList.add('hidden');$('app').classList.remove('hidden');refresh()}
+function fmtUptime(s){s=Math.max(0,s|0);const d=Math.floor(s/86400);s%=86400;const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);return d?`${d}д ${h}ч ${m}м`:`${h}ч ${m}м`}
+function render(d){$('ver').textContent='v'+d.version;$('online').textContent=d.online;$('lobbiesCount').textContent=d.lobbies.length;$('uptime').textContent=fmtUptime(d.uptime);
+$('players').innerHTML=d.players.length?d.players.map(p=>`<div class="item"><div><b>${esc(p.name)}</b><br><small>#${p.id} · ${p.lobby?esc(p.lobby):'без лобби'}${p.host?' · хост':''} · ${p.connected?'онлайн':'reconnect'}</small></div><button class="danger" data-kick="${p.id}">Кик</button></div>`).join(''):'<div class="muted">Нет подключённых игроков</div>';
+$('lobbies').innerHTML=d.lobbies.length?d.lobbies.map(l=>`<div class="item"><div><b>${esc(l.name)}</b><br><small><code>${esc(l.code)}</code> · ${l.players}/${l.max}${l.started?' · бой':''}${l.lock?' · пароль':''}</small></div><button class="danger" data-close="${esc(l.code)}">Закрыть</button></div>`).join(''):'<div class="muted">Нет лобби</div>';
+$('players').querySelectorAll('[data-kick]').forEach(b=>b.onclick=async()=>{if(!confirm('Кикнуть игрока?'))return;try{await action('kick',{id:+b.dataset.kick});await refresh()}catch(e){msg(e.message,true)}});
+$('lobbies').querySelectorAll('[data-close]').forEach(b=>b.onclick=async()=>{if(!confirm('Закрыть лобби '+b.dataset.close+'?'))return;try{await action('closeLobby',{code:b.dataset.close});await refresh()}catch(e){msg(e.message,true)}})}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function refresh(){if(!token)return;try{render(await api('/api/admin/status'))}catch(e){msg(e.message,true)}}
+async function action(action,more={}){return api('/api/admin/action',{method:'POST',body:JSON.stringify({action,...more})})}
+$('loginBtn').onclick=async()=>{try{const d=await api('/api/admin/login',{method:'POST',body:JSON.stringify({key:$('key').value})});token=d.token;sessionStorage.setItem('adminToken',token);$('key').value='';showApp()}catch(e){$('loginMsg').textContent=e.message;$('loginMsg').className='msg bad'}};
+$('key').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
+$('refresh').onclick=refresh;$('logout').onclick=async()=>{try{if(token)await action('logout')}catch(e){}token='';sessionStorage.removeItem('adminToken');showLogin()};
+$('sendBroadcast').onclick=async()=>{const message=$('broadcast').value.trim();if(!message)return;try{await action('broadcast',{message});$('broadcast').value='';msg('Сообщение отправлено')}catch(e){msg(e.message,true)}};
+$('restart').onclick=async()=>{if(!confirm('Перезапустить сервер? Все подключения прервутся.'))return;try{await action('restart');msg('Сервер перезапускается…')}catch(e){msg(e.message,true)}};
+if(token)showApp();else showLogin();timer=setInterval(()=>token&&refresh(),5000);
+</script></body></html>
