@@ -103,9 +103,9 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.3.2';
+const GAME_VERSION='1.3.3';
 const ONLINE_SERVER='steel-frontier.onrender.com';
-const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false};
+const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
 const SAVE={tb:'0',tc:'0',to:'["std"]',te:'std',snd:'1',lang:'',pn:'',srv:''};
 let saveReady=false,saveReadyResolve;
@@ -180,13 +180,89 @@ async function cgInit(){
     try{CG.mute=!!(S.game&&S.game.settings&&S.game.settings.muteAudio)}catch(e){}
     try{S.game.addSettingsChangeListener(s=>{CG.mute=!!s.muteAudio;applyGate()})}catch(e){}
     try{if(S.ad&&S.ad.hasAdblock)CG.adblock=!!(await S.ad.hasAdblock())}catch(e){}
+    if(CG.on&&S.game){
+      try{CG.instant=!!S.game.isInstantMultiplayer}catch(e){CG.instant=false}
+      try{
+        const ip=S.game.inviteParams||{};
+        const get=S.game.getInviteParam?.bind(S.game);
+        CG.inviteRoom=String(ip.roomCode||ip.roomId||get?.('roomCode')||get?.('roomId')||'').trim().toUpperCase();
+        CG.invitePass=String(ip.pass||ip.password||get?.('pass')||'').trim();
+      }catch(e){}
+      try{
+        CG.joinListener=params=>{
+          const p=params||{};
+          const code=String(p.roomCode||p.roomId||p.code||'').trim().toUpperCase();
+          const pass=String(p.pass||p.password||'').trim();
+          if(code)cgHandleInvite(code,pass);
+        };
+        S.game.addJoinRoomListener?.(CG.joinListener);
+      }catch(e){}
+    }
   }catch(e){}
   await initPersistence();
+  if(CG.on&&!CG.flowStarted){
+    CG.flowStarted=true;
+    setTimeout(cgStartFlow,120);
+  }
 }
 function cgGameplay(v){try{if(!CG.ready||!CG.sdk?.game)return;v?CG.sdk.game.gameplayStart?.():CG.sdk.game.gameplayStop?.()}catch(e){}}
 function cgLoading(v){try{if(CG.ready&&CG.sdk?.game){v?CG.sdk.game.loadingStart?.():CG.sdk.game.loadingStop?.()}}catch(e){}}
 function cgHappy(){try{if(CG.ready&&CG.sdk?.game?.happytime)CG.sdk.game.happytime()}catch(e){}}
 function cgContext(){try{if(CG.ready&&CG.sdk?.game?.setGameContext)CG.sdk.game.setGameContext({version:GAME_VERSION,wave:wave,score:score,coins:coins,tank:equip,online:!!online})}catch(e){}}
+function cgRoomUpdate(L){
+  if(!CG.on||!CG.ready||!CG.sdk?.game||!L?.code)return;
+  const players=Array.isArray(L.players)?L.players.length:0;
+  const max=Number(L.max||4);
+  const joinable=!L.started&&players<max;
+  const payload={roomId:'steel-frontier:'+String(L.code),isJoinable:joinable,inviteParams:{roomCode:String(L.code)}};
+  if(net.invitePass)payload.inviteParams.pass=String(net.invitePass);
+  try{CG.sdk.game.updateRoom?.(payload)}catch(e){}
+  updateInviteButton();
+}
+function cgRoomClosed(){
+  try{CG.sdk?.game?.leftRoom?.()}catch(e){}
+  updateInviteButton();
+}
+async function cgInviteLink(){
+  const L=net.lobby;
+  if(!CG.on||!CG.ready||!CG.sdk?.game||!L?.code)return null;
+  const params={roomCode:String(L.code)};
+  if(net.invitePass)params.pass=String(net.invitePass);
+  try{return await Promise.resolve(CG.sdk.game.inviteLink(params))}catch(e){return null}
+}
+async function cgCopyInvite(){
+  const link=await cgInviteLink();
+  const out=$('ric');
+  if(!link){if(out)out.textContent=t('inviteFailed');return}
+  let copied=false;
+  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(link);copied=true}}catch(e){}
+  if(!copied){
+    try{const ta=document.createElement('textarea');ta.value=link;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();copied=document.execCommand('copy');ta.remove()}catch(e){}
+  }
+  if(out)out.textContent=copied?t('inviteCopied'):link;
+}
+function updateInviteButton(){
+  const b=$('ri');if(!b)return;
+  const L=net.lobby;
+  const can=!!(CG.on&&CG.ready&&L&&Array.isArray(L.players)&&L.players.length<(L.max||4)&&!L.started);
+  b.style.display=can?'':'none';
+  const out=$('ric');if(!can&&out)out.textContent='';
+}
+function cgHandleInvite(code,pass=''){
+  code=String(code||'').trim().toUpperCase();if(!code)return;
+  if(online&&net.lobby?.code===code)return;
+  if(state==='play'||online){
+    showBanner('MULTIPLAYER',LANG==='en'?'Open the invitation from the menu after leaving the current battle.':'Открой приглашение из меню после выхода из текущего боя.');
+    return;
+  }
+  CG.inviteRoom=code;CG.invitePass=String(pass||'').trim();
+  onlineScreen({joinCode:code,joinPass:CG.invitePass});
+}
+function cgStartFlow(){
+  if(!CG.on||!CG.ready)return;
+  if(CG.inviteRoom){cgHandleInvite(CG.inviteRoom,CG.invitePass);return}
+  if(CG.instant)onlineScreen({autoCreate:true});
+}
 function applyGate(){
   if(CG.mute)try{musicStop()}catch(e){}
   const b=document.getElementById('snd');
@@ -637,9 +713,9 @@ function stunP(p,t){
 let LANG='en';
 const STR={
   ru:{
-    title:'СТАЛЬНОЙ<br>РУБЕЖ',controls:'Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».',wave:'ВОЛНА',level:'УР.',sound:'ЗВУК',soundOn:'🔊 ЗВУК',soundOff:'🔇 ЗВУК',battle:'В БОЙ',again:'ЕЩЁ РАЗ',enemies:'ВРАГИ',garage:'ГАРАЖ',admin:'АДМИН',online:'Онлайн',offline:'⚪ Онлайн недоступен',pause:'ПАУЗА',resume:'ВЕРНУТЬСЯ',openOnline:'ОТКРЫТЬ ОНЛАЙН',closeOnline:'ЗАКРЫТЬ ОНЛАЙН',menu:'МЕНЮ',mode:'РЕЖИМ ИГРЫ',waves:'ВОЛНЫ',back:'НАЗАД',join:'ПРИСОЕДИНИТЬСЯ',createLobby:'СОЗДАТЬ ЛОББИ',create:'СОЗДАТЬ',start:'НАЧАТЬ',leave:'ВЫЙТИ',lobby:'ЛОББИ',players:'Игроков',minimum:'минимум',host:'хост',player:'игрок',you:'вы',waitingHost:'ждём, пока хост начнёт игру',room:'Код',downed:'ПОДБИТ',watchAd:'🎬 СМОТРЕТЬ РЕКЛАМУ',continueFor:'ПРОДОЛЖИТЬ ЗА',finish:'ЗАВЕРШИТЬ',reviveText:'Ты подбит, но можешь вернуться в бой.',reviveReward:'Посмотри рекламу до конца — вернёшься в бой с полным HP и продолжишь текущую волну.',adLoading:'Загрузка рекламы…',revCoins:'Или продолжи за монеты.',score:'Счёт',record:'Рекорд',waveWord:'Волна',buy:'КУПИТЬ',owned:'КУПЛЕН',equipped:'ЭКИПИРОВАН',select:'ВЫБРАТЬ',notEnough:'МАЛО МОНЕТ',coinsFor:'получай их за бои (счёт ÷ 40)',healthGrows:'Здоровье растёт на 10% с каждой волной.',server:'Сервер (xxx.onrender.com)',name:'Ваше имя',code:'Код',password:'Пароль (если есть)',passwordOptional:'Пароль для онлайна (необязательно)',newLobby:'Название лобби',noLobbies:'Лобби пока нет — создай своё.',connecting:'Подключение…',onlinePlayers:'Онлайн на сервере',disconnected:'Связь с сервером потеряна',notSet:'Адрес сервера не задан. Открой: МЕНЮ → В БОЙ → ОНЛАЙН и укажи его.',rotate:'📱<br>Поверни телефон<br>горизонтально',repair:'Ремкомплекты',reviveAd:'СПАСЕНИЕ ЗА РЕКЛАМУ',revive:'ВОЗВРАЩЕНИЕ В БОЙ',waveStart:'В БОЙ!',waveClear:'ЗАЧИЩЕНА!',wait:'Загрузка…',levelPick:'Выбери улучшение',respawn:'Возрождение в следующей волне',secondWind:'ВТОРОЕ ДЫХАНИЕ',stunned:'Оглушение',downedShort:'ПОДБИТ'},
+    title:'СТАЛЬНОЙ<br>РУБЕЖ',controls:'Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».',wave:'ВОЛНА',level:'УР.',sound:'ЗВУК',soundOn:'🔊 ЗВУК',soundOff:'🔇 ЗВУК',battle:'В БОЙ',again:'ЕЩЁ РАЗ',enemies:'ВРАГИ',garage:'ГАРАЖ',admin:'АДМИН',online:'Онлайн',offline:'⚪ Онлайн недоступен',pause:'ПАУЗА',resume:'ВЕРНУТЬСЯ',openOnline:'ОТКРЫТЬ ОНЛАЙН',closeOnline:'ЗАКРЫТЬ ОНЛАЙН',menu:'МЕНЮ',mode:'РЕЖИМ ИГРЫ',waves:'ВОЛНЫ',back:'НАЗАД',join:'ПРИСОЕДИНИТЬСЯ',createLobby:'СОЗДАТЬ ЛОББИ',create:'СОЗДАТЬ',start:'НАЧАТЬ',leave:'ВЫЙТИ',invite:'ПРИГЛАСИТЬ',inviteCopied:'Ссылка приглашения скопирована',inviteReady:'Ссылка приглашения готова',inviteFailed:'Не удалось скопировать ссылку',lobby:'ЛОББИ',players:'Игроков',minimum:'минимум',host:'хост',player:'игрок',you:'вы',waitingHost:'ждём, пока хост начнёт игру',room:'Код',downed:'ПОДБИТ',watchAd:'🎬 СМОТРЕТЬ РЕКЛАМУ',continueFor:'ПРОДОЛЖИТЬ ЗА',finish:'ЗАВЕРШИТЬ',reviveText:'Ты подбит, но можешь вернуться в бой.',reviveReward:'Посмотри рекламу до конца — вернёшься в бой с полным HP и продолжишь текущую волну.',adLoading:'Загрузка рекламы…',revCoins:'Или продолжи за монеты.',score:'Счёт',record:'Рекорд',waveWord:'Волна',buy:'КУПИТЬ',owned:'КУПЛЕН',equipped:'ЭКИПИРОВАН',select:'ВЫБРАТЬ',notEnough:'МАЛО МОНЕТ',coinsFor:'получай их за бои (счёт ÷ 40)',healthGrows:'Здоровье растёт на 10% с каждой волной.',server:'Сервер (xxx.onrender.com)',name:'Ваше имя',code:'Код',password:'Пароль (если есть)',passwordOptional:'Пароль для онлайна (необязательно)',newLobby:'Название лобби',noLobbies:'Лобби пока нет — создай своё.',connecting:'Подключение…',onlinePlayers:'Онлайн на сервере',disconnected:'Связь с сервером потеряна',notSet:'Адрес сервера не задан. Открой: МЕНЮ → В БОЙ → ОНЛАЙН и укажи его.',rotate:'📱<br>Поверни телефон<br>горизонтально',repair:'Ремкомплекты',reviveAd:'СПАСЕНИЕ ЗА РЕКЛАМУ',revive:'ВОЗВРАЩЕНИЕ В БОЙ',waveStart:'В БОЙ!',waveClear:'ЗАЧИЩЕНА!',wait:'Загрузка…',levelPick:'Выбери улучшение',respawn:'Возрождение в следующей волне',secondWind:'ВТОРОЕ ДЫХАНИЕ',stunned:'Оглушение',downedShort:'ПОДБИТ'},
   en:{
-    title:'STEEL<br>FRONTIER',controls:'Left stick — move.<br>Right stick — aim and fire.<br>Pick up repair kits “+”.',wave:'WAVE',level:'LV.',sound:'SOUND',soundOn:'🔊 SOUND',soundOff:'🔇 SOUND',battle:'BATTLE',again:'PLAY AGAIN',enemies:'ENEMIES',garage:'GARAGE',admin:'ADMIN',online:'Online',offline:'⚪ Online unavailable',pause:'PAUSED',resume:'RESUME',openOnline:'OPEN ONLINE',closeOnline:'CLOSE ONLINE',menu:'MENU',mode:'GAME MODE',waves:'WAVES',back:'BACK',join:'JOIN',createLobby:'CREATE LOBBY',create:'CREATE',start:'START',leave:'LEAVE',lobby:'LOBBY',players:'Players',minimum:'minimum',host:'host',player:'player',you:'you',waitingHost:'waiting for the host to start',room:'Code',downed:'DOWNED',watchAd:'🎬 WATCH AD',continueFor:'CONTINUE FOR',finish:'FINISH',reviveText:'You are down, but you can return to battle.',reviveReward:'Watch the ad to the end — you will return to battle with full HP and keep this wave.',adLoading:'Loading ad…',revCoins:'Or continue with coins.',score:'Score',record:'Best',waveWord:'Wave',buy:'BUY',owned:'OWNED',equipped:'EQUIPPED',select:'SELECT',notEnough:'NOT ENOUGH COINS',coinsFor:'earn them from battles (score ÷ 40)',healthGrows:'Enemy health grows by 10% each wave.',server:'Server (xxx.onrender.com)',name:'Your name',code:'Code',password:'Password (if any)',passwordOptional:'Online password (optional)',newLobby:'Lobby name',noLobbies:'No lobbies yet — create one.',connecting:'Connecting…',onlinePlayers:'Players online',disconnected:'Connection to server lost',notSet:'Server address is not set. Open: BATTLE → ONLINE and enter it.',rotate:'📱<br>Rotate your phone<br>to landscape',repair:'Repair kits',reviveAd:'REVIVE FOR AD',revive:'BACK TO BATTLE',waveStart:'GO!',waveClear:'CLEARED!',wait:'Loading…',levelPick:'Choose an upgrade',respawn:'Respawn on the next wave',secondWind:'SECOND WIND',stunned:'Stunned',downedShort:'DOWNED'}
+    title:'STEEL<br>FRONTIER',controls:'Left stick — move.<br>Right stick — aim and fire.<br>Pick up repair kits “+”.',wave:'WAVE',level:'LV.',sound:'SOUND',soundOn:'🔊 SOUND',soundOff:'🔇 SOUND',battle:'BATTLE',again:'PLAY AGAIN',enemies:'ENEMIES',garage:'GARAGE',admin:'ADMIN',online:'Online',offline:'⚪ Online unavailable',pause:'PAUSED',resume:'RESUME',openOnline:'OPEN ONLINE',closeOnline:'CLOSE ONLINE',menu:'MENU',mode:'GAME MODE',waves:'WAVES',back:'BACK',join:'JOIN',createLobby:'CREATE LOBBY',create:'CREATE',start:'START',leave:'LEAVE',invite:'INVITE',inviteCopied:'Invite link copied',inviteReady:'Invite link ready',inviteFailed:'Could not copy invite link',lobby:'LOBBY',players:'Players',minimum:'minimum',host:'host',player:'player',you:'you',waitingHost:'waiting for the host to start',room:'Code',downed:'DOWNED',watchAd:'🎬 WATCH AD',continueFor:'CONTINUE FOR',finish:'FINISH',reviveText:'You are down, but you can return to battle.',reviveReward:'Watch the ad to the end — you will return to battle with full HP and keep this wave.',adLoading:'Loading ad…',revCoins:'Or continue with coins.',score:'Score',record:'Best',waveWord:'Wave',buy:'BUY',owned:'OWNED',equipped:'EQUIPPED',select:'SELECT',notEnough:'NOT ENOUGH COINS',coinsFor:'earn them from battles (score ÷ 40)',healthGrows:'Enemy health grows by 10% each wave.',server:'Server (xxx.onrender.com)',name:'Your name',code:'Code',password:'Password (if any)',passwordOptional:'Online password (optional)',newLobby:'Lobby name',noLobbies:'No lobbies yet — create one.',connecting:'Connecting…',onlinePlayers:'Players online',disconnected:'Connection to server lost',notSet:'Server address is not set. Open: BATTLE → ONLINE and enter it.',rotate:'📱<br>Rotate your phone<br>to landscape',repair:'Repair kits',reviveAd:'REVIVE FOR AD',revive:'BACK TO BATTLE',waveStart:'GO!',waveClear:'CLEARED!',wait:'Loading…',levelPick:'Choose an upgrade',respawn:'Respawn on the next wave',secondWind:'SECOND WIND',stunned:'Stunned',downedShort:'DOWNED'}
 };
 const UP_EN=[
   'Afterburner','Reinforced Armor','Repair','Extra Barrel','Armor Piercing','Vampirism','Shield','Explosives','Regeneration','Luck','Experienced','Fast Shells','Critical Hit','Magnet','Freeze','Second Wind','Heavy Cannon'
@@ -1521,7 +1597,7 @@ try{
 }catch(e){setOnline()}
 
 // ================= ОНЛАЙН =================
-const net={ws:null,url:'',id:null,lobby:null,scr:null,tp:0,iv:null,cbs:[],lobbies:[],online:0,fromPause:false,resume:'',manual:false,reconnecting:false,retryTimer:null,retryCount:0};
+const net={ws:null,url:'',id:null,lobby:null,scr:null,tp:0,iv:null,cbs:[],lobbies:[],online:0,fromPause:false,resume:'',manual:false,reconnecting:false,retryTimer:null,retryCount:0,invitePass:''};
 let myName='';
 try{net.resume=sessionStorage.getItem('tankResume')||''}catch(e){}
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1539,7 +1615,7 @@ function lobChip(){const e=$('lob');if(e)e.textContent=net.lobby?('🔗 '+net.lo
 function netLeave(){
   net.manual=true;net.reconnecting=false;net.retryCount=0;if(net.retryTimer){clearTimeout(net.retryTimer);net.retryTimer=null}
   if(net.lobby){send({t:'leave'});net.lobby=null}
-  saveResumeToken('');clearInterval(net.iv);lobChip()
+  net.invitePass='';saveResumeToken('');clearInterval(net.iv);lobChip();cgRoomClosed()
 }
 function scheduleReconnect(){
   if(net.manual||net.reconnecting||(!online&&!net.lobby))return;
@@ -1611,7 +1687,7 @@ function netEnded(msg){
   msg=localizeServerMsg(msg);
   if(state==='over')return;
   net.manual=true;if(net.retryTimer){clearTimeout(net.retryTimer);net.retryTimer=null}net.reconnecting=false;saveResumeToken('');
-  net.lobby=null;online=false;role=null;ovl=false;if(P)P.ch=false;net.scr=null;net.fromPause=false;clearInterval(net.iv);lobChip();
+  net.lobby=null;net.invitePass='';online=false;role=null;ovl=false;if(P)P.ch=false;net.scr=null;net.fromPause=false;clearInterval(net.iv);lobChip();cgRoomClosed();
   state='menu';$('cd').style.display='none';$('pm').style.display='none';$('bs').style.display='none';
   $('t').innerHTML=t('title');$('m').innerHTML=esc(msg);$('cn').style.display='';coinLabel();$('go').textContent=t('battle');$('ov').style.display='flex';drawMenuTank();applyLocale();drawMenuTank();
 }
@@ -1627,7 +1703,7 @@ function netMsg(m){
   if(m.t==='admin'){showBanner('СООБЩЕНИЕ АДМИНИСТРАТОРА',m.msg||'');return}
   switch(m.t){
     case 'list':net.lobbies=m.lobbies||[];net.online=m.online;if(net.scr==='list')renderList();break;
-    case 'lobby':net.lobby=m;lobChip();
+    case 'lobby':net.lobby=m;lobChip();cgRoomUpdate(m);
       if(net.scr==='list'||net.scr==='create'||net.scr==='room')roomScreen();
       else if($('pm').style.display==='flex')pmRefresh();
       break;
@@ -1652,6 +1728,8 @@ function netMsg(m){
 }
 function onStart(){
   const L=net.lobby;if(!L)return;
+  try{CG.sdk?.game?.updateRoom?.({isJoinable:false})}catch(e){}
+  updateInviteButton();
   $('bs').style.display='none';net.scr=null;clearInterval(net.iv);
   if(L.host===net.id)hostBegin(L.players,net.fromPause&&state==='pause');
   else showBanner('ИГРА НАЧИНАЕТСЯ','Загрузка…');
@@ -1751,7 +1829,10 @@ function renderList(){
   e.querySelectorAll('.lr').forEach(d=>d.onclick=()=>{$('jc').value=d.dataset.c;if(d.dataset.k==='1')$('jp').focus()});
   const s=$('ost');if(s&&!s.style.color)s.textContent='🟢 '+t('onlinePlayers')+': '+(net.online||'?');
 }
-function onlineScreen(){
+function onlineScreen(opts={}){
+  const joinCode=String(opts.joinCode||'').trim().toUpperCase();
+  const joinPass=String(opts.joinPass||'').trim();
+  const autoCreate=!!opts.autoCreate;
   net.scr='list';clearInterval(net.iv);
   const needSrv=!/^https?:$/.test(location.protocol)||!!window.claude;
   $('bs').innerHTML=`<h2>${t('online')}</h2><div class="row"><input id="nm" maxlength="14" placeholder="${t('name')}" value="${esc(myName)}">${needSrv?`<input id="sv" placeholder="${t('server')}" value="${esc(srvAddr())}">`:''}</div><p id="ost">${t('connecting')}</p><div id="lbl" class="gr"></div><div class="row"><input id="jc" maxlength="4" placeholder="${t('code')}" style="max-width:90px;text-transform:uppercase"><input id="jp" maxlength="16" placeholder="${t('password')}"><button id="jb" class="sm">${t('join')}</button></div><div class="row"><button id="ob" class="sm sc">${t('back')}</button><button id="oc" class="sm">${t('createLobby')}</button></div>`;
@@ -1766,27 +1847,44 @@ function onlineScreen(){
       net.iv=setInterval(()=>{if(net.scr!=='list'){clearInterval(net.iv);return}send({t:'list'})},3000);cb&&cb()})};
   $('ob').onclick=()=>{save();modeScreen()};
   $('oc').onclick=()=>conn(createScreen);
-  $('jb').onclick=()=>conn(()=>send({t:'join',code:$('jc').value.trim().toUpperCase(),pass:$('jp').value,pn:myName,tk:equip}));
-  conn();
+  $('jb').onclick=()=>{net.invitePass=$('jp').value.trim();conn(()=>send({t:'join',code:$('jc').value.trim().toUpperCase(),pass:net.invitePass,pn:myName,tk:equip}))};
+  conn(()=>{
+    if(joinCode){
+      net.invitePass=joinPass;
+      $('jc').value=joinCode;
+      $('jp').value=joinPass;
+      send({t:'join',code:joinCode,pass:joinPass,pn:myName,tk:equip});
+      return;
+    }
+    if(autoCreate){
+      send({t:'create',name:(LANG==='en'?'Steel Frontier ':'Стальной рубеж ')+myName,pass:'',pn:myName,tk:equip});
+      return;
+    }
+    status('🟢 '+t('onlinePlayers')+': '+(net.online||'?'));
+    send({t:'list'});clearInterval(net.iv);
+    net.iv=setInterval(()=>{if(net.scr!=='list'){clearInterval(net.iv);return}send({t:'list'})},3000);
+  });
 }
 function createScreen(){
   net.scr='create';clearInterval(net.iv);
   $('bs').innerHTML=`<h2>${t('createLobby')}</h2><div class="row"><input id="cn2" maxlength="20" placeholder="${t('newLobby')}" value="${esc((LANG==='en'?'Lobby ':'Лобби ')+myName)}"><input id="cp" maxlength="16" placeholder="${t('passwordOptional')}"></div><p id="ost"></p><div class="row"><button id="cb" class="sm sc">${t('back')}</button><button id="cc" class="sm">${t('create')}</button></div>`;
   $('cb').onclick=onlineScreen;
-  $('cc').onclick=()=>send({t:'create',name:$('cn2').value.trim()||'Лобби',pass:$('cp').value,pn:myName,tk:equip});
+  $('cc').onclick=()=>{net.invitePass=$('cp').value.trim();send({t:'create',name:$('cn2').value.trim()||'Лобби',pass:net.invitePass,pn:myName,tk:equip})};
 }
 function roomScreen(){
   const L=net.lobby;if(!L)return;const host=L.host===net.id;
   if(net.scr!=='room'){net.scr='room';clearInterval(net.iv);
-    $('bs').innerHTML=`<h2>${t('lobby')}</h2><p id="rmh" style="margin:2px 0"></p><p id="rmn" style="margin:2px 0;font-family:system-ui,sans-serif;font-size:14px"></p><div id="rml" class="gr"></div><p id="ost"></p><div class="row"><button id="rx" class="sm sc">${t('leave')}</button><button id="rs2" class="sm">${t('start')}</button></div>`;
+    $('bs').innerHTML=`<h2>${t('lobby')}</h2><p id="rmh" style="margin:2px 0"></p><p id="rmn" style="margin:2px 0;font-family:system-ui,sans-serif;font-size:14px"></p><div id="rml" class="gr"></div><p id="ost"></p><div class="row"><button id="rx" class="sm sc">${t('leave')}</button><button id="ri" class="sm">${t('invite')}</button><button id="rs2" class="sm">${t('start')}</button></div><p id="ric" style="margin:4px 0;font-family:system-ui,sans-serif;font-size:12px;opacity:.85;word-break:break-all"></p>`;
     $('bs').style.display='block';
     $('rx').onclick=()=>{netLeave();onlineScreen()};
+    $('ri').onclick=()=>cgCopyInvite();
     $('rs2').onclick=()=>send({t:'start'});
   }
   $('rmh').innerHTML=`<b>${esc(L.name)}</b> · Код: <b style="color:var(--acc);font-size:1.5em;letter-spacing:3px">${esc(L.code)}</b>${L.lock?' 🔒':''}`;
   $('rmn').textContent=`${t('players')}: ${L.players.length}/${L.max} (${t('minimum')} ${L.min})`+(host?'':' · '+t('waitingHost'));
   $('rml').innerHTML=L.players.map(p=>`<div class="lr" style="cursor:default"><b>${esc(p.name)}</b><span>${p.id===L.host?'👑 '+t('host'):t('player')}${p.id===net.id?' ('+t('you')+')':''}</span></div>`).join('');
   const b=$('rs2');b.style.display=host?'':'none';b.disabled=L.players.length<L.min;
+  updateInviteButton();
 }
 $('pmo').onclick=()=>{
   if(state!=='pause')return;
