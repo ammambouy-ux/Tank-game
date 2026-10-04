@@ -3,12 +3,26 @@
 const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 3000;
-const GAME_VERSION = '1.2.0';
+const GAME_VERSION = '1.2.5';
 const ADMIN_KEY = String(process.env.ADMIN_KEY || '').trim();
 const adminSessions = new Map();
 const ADMIN_SESSION_MS = 8 * 60 * 60 * 1000;
 const INDEX = path.join(__dirname, 'index.html');
 const ADMIN_HTML = path.join(__dirname, 'admin.html');
+const SFX_DIR = path.join(__dirname, 'PackSFXTanks');
+const MUSIC_DIR = path.join(__dirname, 'PackMusic');
+const AUDIO_RE = /\.(mp3|wav|ogg)$/i;
+const AUDIO_MIME = { '.mp3':'audio/mpeg', '.wav':'audio/wav', '.ogg':'audio/ogg' };
+function serveAudioFile(res, dir, name, notFound) {
+  if (!AUDIO_RE.test(name)) { res.writeHead(notFound ? 404 : 403); res.end('not found'); return; }
+  const full = path.join(dir, name);
+  if (full !== path.join(dir, path.basename(full)) || !full.startsWith(dir + path.sep)) { res.writeHead(403); res.end('forbidden'); return; }
+  fs.readFile(full, (e, d) => {
+    if (e) { res.writeHead(404); res.end('not found'); return; }
+    res.writeHead(200, { 'Content-Type': AUDIO_MIME[path.extname(name).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'public, max-age=86400' });
+    res.end(d);
+  });
+}
 const DISCONNECT_GRACE_MS = 60_000;
 
 function sendJson(res, code, data, extra={}) {
@@ -113,6 +127,17 @@ async function handleAdmin(req, res) {
 
 const server = http.createServer(async (req, res) => {
   if (await handleAdmin(req,res)) return;
+  const sfxUrl = decodeURIComponent((req.url || '').split('?')[0]);
+  if (sfxUrl === '/api/sfx' && req.method === 'GET') {
+    fs.readdir(SFX_DIR, (e, files) => sendJson(res, 200, e ? [] : files.filter(f => AUDIO_RE.test(f))));
+    return;
+  }
+  if (sfxUrl === '/api/music' && req.method === 'GET') {
+    fs.readdir(MUSIC_DIR, (e, files) => sendJson(res, 200, e ? [] : files.filter(f => AUDIO_RE.test(f))));
+    return;
+  }
+  if (sfxUrl.startsWith('/PackSFXTanks/') && req.method === 'GET') { serveAudioFile(res, SFX_DIR, path.basename(sfxUrl), true); return; }
+  if (sfxUrl.startsWith('/PackMusic/') && req.method === 'GET') { serveAudioFile(res, MUSIC_DIR, path.basename(sfxUrl), true); return; }
   if (req.url === '/health') { sendJson(res,200,{ok:true,version:GAME_VERSION,online:connectedCount(),lobbies:lobbies.size}); return; }
   if (req.url === '/' || req.url.startsWith('/index.html')) {
     fs.readFile(INDEX, (e, d) => {
