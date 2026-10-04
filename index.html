@@ -80,7 +80,6 @@ button.sm.sc{box-shadow:0 3px 0 #000}
 button:disabled{opacity:.5}
 .lr{background:#2c3a22;border-left:5px solid var(--acc);padding:8px 12px;display:flex;justify-content:space-between;gap:10px;font-family:system-ui,sans-serif;font-size:14px;cursor:pointer}
 #ost{font-family:system-ui,sans-serif;font-size:14px;margin:4px 0}
-/* Экран «Второй шанс» (rewarded-реклама) */
 #rv{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,2vh,18px);background:rgba(10,14,8,.92);text-align:center;padding:16px}
 #rv h2{margin:0;font-size:clamp(34px,11vh,60px);font-weight:400;color:var(--bad);text-shadow:3px 3px 0 #000}
 #rv .sub{font-family:system-ui,sans-serif;font-size:clamp(12px,3.4vh,16px);max-width:min(90vw,460px);opacity:.95}
@@ -105,8 +104,6 @@ button:disabled{opacity:.5}
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
 const GAME_VERSION='1.3.0';
-// ================= CrazyGames SDK =================
-// Онлайн-сервер (Render) для подключения из iframe CrazyGames (их хостинг статичный).
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -156,7 +153,6 @@ async function initPersistence(){
     }
     if(!SAVE.lang) SAVE.lang=defaultLocaleFromSdk();
     for(const k of ['tb','tc','to','te','snd','pn','lang']) if(SAVE[k]!=null) {try{CG.sdk.data.setItem(k,String(SAVE[k]))}catch(e){}}
-    // После миграции CrazyGames Data Module является единственным источником сохранений на CG.
     for(const k of SAVE_KEYS) safeLocalRemove(k);
   } else {
     if(!SAVE.lang) SAVE.lang=defaultLocaleFromSdk();
@@ -170,7 +166,9 @@ async function initPersistence(){
 }
 async function cgInit(){
   const started=Date.now();
-  while(!(window.CrazyGames&&window.CrazyGames.SDK) && Date.now()-started<10000) await new Promise(r=>setTimeout(r,150));
+  const isCG=(function(){try{return location.hostname.includes('crazygames')||/crazygames/i.test(document.referrer||'')}catch(e){return false}})();
+  const maxWait=isCG?10000:2500;
+  while(!(window.CrazyGames&&window.CrazyGames.SDK) && Date.now()-started<maxWait) await new Promise(r=>setTimeout(r,150));
   if(!(window.CrazyGames&&window.CrazyGames.SDK)){
     CG.ready=false;CG.on=false;await initPersistence();return;
   }
@@ -189,7 +187,6 @@ function cgGameplay(v){try{if(!CG.ready||!CG.sdk?.game)return;v?CG.sdk.game.game
 function cgLoading(v){try{if(CG.ready&&CG.sdk?.game){v?CG.sdk.game.loadingStart?.():CG.sdk.game.loadingStop?.()}}catch(e){}}
 function cgHappy(){try{if(CG.ready&&CG.sdk?.game?.happytime)CG.sdk.game.happytime()}catch(e){}}
 function cgContext(){try{if(CG.ready&&CG.sdk?.game?.setGameContext)CG.sdk.game.setGameContext({version:GAME_VERSION,wave:wave,score:score,coins:coins,tank:equip,online:!!online})}catch(e){}}
-// Единый привратник звука: пользовательский тумблер + требование CrazyGames muteAudio.
 function applyGate(){
   if(CG.mute)try{musicStop()}catch(e){}
   const b=document.getElementById('snd');
@@ -203,8 +200,6 @@ let W,H,SW,SH,SPX,SPY,SU,VS,camx=0,camy=0,U,dpr,state='menu',best=0;
 function resize(){dpr=Math.min(devicePixelRatio||1,2);SPX=innerWidth;SPY=innerHeight;cv.width=SPX*dpr;cv.height=SPY*dpr;cx.setTransform(dpr,0,0,dpr,0,0);U=24;SU=Math.max(16,Math.min(SPX,SPY)/16);VS=SU/U;SW=SPX/VS;SH=SPY/VS;W=U*80;H=U*44}
 resize();addEventListener('resize',resize);
 // ==================== ЗВУК ====================
-// Генератор сэмплов ZzFX (Frank Force, MIT) — звук синтезируется кодом, без файлов.
-// Адаптировано: статичная функция zzfxSamples(...) + кэш AudioBuffer + панорама/затухание.
 const AUDIO_V=.5;
 let AC=null,sndOn=true;
 function audioInit(){if(AC)return AC;try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){AC=null}return AC}
@@ -235,10 +230,6 @@ function zzfxSamples(volume=1,randomness=.05,frequency=220,attack=0,sustain=0,re
   }
   return b;
 }
-// Банк звуков. Билдер S({...}) раскладывает именованные поля в 21 позицию ZzFX,
-// чтобы не ошибиться в порядке параметров:
-// [volume,randomness,frequency,attack,sustain,release,shape,shapeCurve,slide,deltaSlide,
-//  pitchJump,pitchJumpTime,repeatTime,noise,modulation,bitCrush,delay,sustainVolume,decay,tremolo,filter]
 const SNDDEF={
   shoot:   {vol:.55,rnd:.12,freq:420, atk:.008,rel:.06,shp:2,shc:1.3,sli:-4,dsl:2,mod:.09,sv:.5,flt:600},
   eshoot:  {vol:.55,rnd:.15,freq:300, atk:.006,rel:.07,shp:2,shc:1.2,sli:-6,dsl:3,mod:.08,sv:.5,flt:500},
@@ -267,11 +258,7 @@ const SND={};
 for(const k in SNDDEF){const o=SNDDEF[k]||{};SND[k]=[o.vol==null?1:o.vol,o.rnd==null?.05:o.rnd,o.freq==null?220:o.freq,o.atk||0,o.sus||0,o.rel==null?.1:o.rel,o.shp||0,o.shc==null?1:o.shc,o.sli||0,o.dsl||0,o.pj||0,o.pjt||0,o.rt||0,o.noi||0,o.mod||0,o.bc||0,o.del||0,o.sv==null?1:o.sv,o.dec||0,o.trem||0,o.flt||0]}
 const SNDB={};
 function sndBuf(n){let b=SNDB[n];if(b)return b;const c=audioInit();if(!c||!SND[n])return null;const arr=zzfxSamples(...SND[n]);b=c.createBuffer(1,arr.length,44100);b.getChannelData(0).set(arr);SNDB[n]=b;return b}
-// ---------- Свои звуки из папки PackSFXTanks (mp3) ----------
-// Файл называется как событие: shoot.mp3, boom.mp3, tesla.mp3 и т.д.
-// Можно добавить варианты: shoot1.mp3, shoot2.mp3 — будет играть случайный.
-const SFX_MP3={};        // имя события -> массив AudioBuffer (Web Audio, есть панорама)
-const SFX_HTML={};       // имя события -> массив <audio> (запасной путь для file://)
+const SFX_MP3={};const SFX_HTML={};
 let sfxPackLoading=false,sfxPackDone=false;
 const AUDIO_EXT=/\.(mp3|wav|ogg)$/i;
 const baseName=f=>String(f).replace(AUDIO_EXT,'').replace(/\d+$/,'').toLowerCase();
@@ -283,7 +270,6 @@ async function loadMp3Group(c,name,urls){
   }
   if(out.length)SFX_MP3[name]=out;
 }
-// Проверка наличия файла через <audio> — работает и при запуске с file://
 function tryHtml(name,url){return new Promise(res=>{
   const a=new Audio();a.preload='auto';a.src=url;let done=false;
   const ok=()=>{if(done)return;done=true;(SFX_HTML[name]=SFX_HTML[name]||[]).push(a);res(true)};
@@ -309,7 +295,6 @@ async function loadSfxPack(){
       }catch(e){}
     }
   }catch(e){}
-  // Если через API ничего не поднялось (CG, file:// или пусто) — пробуем <audio> по именам.
   if(!Object.keys(SFX_MP3).length&&!Object.keys(SFX_HTML).length){
     const bases=Object.keys(SNDDEF);
     const cands=['PackSFXTanks/','../PackSFXTanks/','../../PackSFXTanks/'];
@@ -335,8 +320,6 @@ function sfx(n,o={}){
   if(c.createStereoPanner&&o.pan){const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));s.connect(p);p.connect(g)}else s.connect(g);
   g.connect(c.destination);try{s.start()}catch(e){}
 }
-// ---------- Музыка из папки PackMusic ----------
-// menu.* — в меню, battle.* / battle2.* — в бою (случайный трек). Форматы mp3/wav/ogg.
 const MUSIC={fileNames:[],byBase:{},cur:null,curName:'',playing:false,vol:.35};
 function musicEl(url){const a=new Audio();a.loop=true;a.preload='auto';a.src=url;a.volume=0;return a}
 function musicEnsure(n){if(MUSIC.byBase[n])return MUSIC.byBase[n];const files=MUSIC.fileNames.filter(f=>baseName(f)===n);if(!files.length)return null;
@@ -361,7 +344,6 @@ async function loadMusicPack(){
     if(!MUSIC.fileNames.length)MUSIC.fileNames=['menu.mp3','battle.mp3','battle2.mp3'];
   }catch(e){MUSIC.fileNames=[]}
 }
-// Позиционный звук: панорама по экрану + затухание с расстоянием от центра камеры.
 function sfxAt(n,x,y,o={}){if(!sndAllowed())return;const pan=Math.max(-1,Math.min(1,((x-camx)-SW/2)/(SW/2)));const d=Math.hypot(x-(camx+SW/2),y-(camy+SH/2));o=Object.assign({},o);if(o.vol==null)o.vol=1;o.vol*=Math.max(.25,1-d/(SW*1.1));o.pan=pan;sfx(n,o)}
 function audioKick(){audioResume();loadSfxPack();loadMusicPack().then(()=>{if(state==='menu')musicPlay('menu')})}
 addEventListener('pointerdown',audioKick);addEventListener('keydown',audioKick);
@@ -370,9 +352,7 @@ let P,PL=[],walls=[],en=[],bl=[],pt=[],pk=[],fires=[],flames=[],wave=1,score=0,s
 const TV={pauseMenu:false,adPlaying:false};
 const BOSS_TYPES=new Set([5,9,10,11]);
 const HIVE_MAX_MINIONS=10;
-// Высота дуги снаряда в мире: миномёт — навесная, артиллерист — настильная.
 const ARC_MORTAR=U*9, ARC_ARTY=U*3.2;
-// Множитель времени полёта миномётных мин: 1.0 — базовое (1.6–2.4 сек), 0.65 — на 35% быстрее.
 const STRIKE_T=0.65;
 const UP=[
 ['🔫','Мощный снаряд','+40% урона',p=>p.dmg*=1.4],
@@ -394,12 +374,9 @@ const UP=[
 ['❄️','Заморозка','Попадания замедляют врагов',p=>p.frost=1],
 ['👼','Второе дыхание','Воскрешение с 50% HP',p=>p.rev++],
 ['🐘','Тяжёлая пушка','+80% урона, но −33% скорострельности',p=>{p.dmg*=1.8;p.rate*=1.33}]];
-// UN[12]=1 — дрон улья, в обычном пуле спавна исключается. UN[13]=8 — огнемётчик.
-// UN[14]=6 — Тесла.
 const UN=[1,2,3,4,3,5,4,6,5,10,20,15,1,8,6];
 const BOSS_ORDER=[5,9,11,10];
 function bossType(){const n=wave/5|0;return BOSS_ORDER[(n-1+BOSS_ORDER.length)%BOSS_ORDER.length]}
-// TCOL[12] — дрон улья, TCOL[13] — огнемётчик.
 const TCOL=[['#b5473a','#7d2f27'],['#d98a2b','#94591a'],['#7b4e9a','#513368'],['#3a8f96','#245a5e'],['#e8e04a','#8a8420'],['#c23b6b','#7a2244'],['#8a8a8a','#444'],['#5a7d3a','#38501f'],['#4a6a9a','#2e4468'],['#c9a227','#8a6d12'],['#7a3fa0','#3d1f55'],['#6a7a3a','#3e4a1f'],['#e8c42f','#8a7a1a'],['#e85a1a','#8a3010'],['#3fb4e8','#1d5a82']];
 const TANKS=[
 {id:'std',name:'Стандартный',cost:0,c1:'#5f8a3f',c2:'#3d5a27',perk:'Без бонусов',mod:{}},
@@ -458,7 +435,6 @@ function artilleryTarget(e){
   const t=PL.find(p=>p.id===e.targetId&&!p.dead);
   return t||pickArtilleryTarget(e)||nearP(e.x,e.y);
 }
-// x0,y0 — точка выстрела (для полёта снаряда), kind — 7 (миномёт) или 11 (артиллерист).
 function pushStrike(x,y,r,t,d,pat=0,x0,y0,kind){
   x=Math.max(U,Math.min(W-U,x));y=Math.max(U,Math.min(H-U,y));
   const tt=t*STRIKE_T;
@@ -470,7 +446,6 @@ function wHit(w,d){if(w.st)return;w.hp-=d;if(online&&role==='host')wq.push([w.i,
 function fx(x,y,c){if(online&&role==='host'&&fq.length<40)fq.push([Math.round(x),Math.round(y),c])}
 function cam(k){const T=(P.dead&&PL.find(p=>!p.dead))||P;camx+=(Math.max(0,Math.min(W-SW,T.x-SW/2))-camx)*k;camy+=(Math.max(0,Math.min(H-SH,T.y-SH/2))-camy)*k}
 function blast(x,y,r,d){boom(x,y,40,'#ffb03a',U*10,.8);shake=14;zn.push({x,y,r,t:.35,m:.35,k:1});fx(x,y,2);sfxAt('blast',x,y,{vol:.9,pitch:.9+R()*.2});for(const p of PL)if(!p.dead&&Math.hypot(p.x-x,p.y-y)<r+p.r)hurtP(p,d);for(const o of en)if(!o.dead&&Math.hypot(o.x-x,o.y-y)<r)hitE(o,d*.5);for(const w of walls)if(!w.st&&Math.hypot(w.x+w.w/2-x,w.y+w.h/2-y)<r)wHit(w,2)}
-// Призыватель (k=10): minion helper. Призванные танки несут hiveId = id хозяина.
 const SUM_STATS={0:{hp:2,sp:3,s:1,c:'#b5473a',d:'#7d2f27',cd:1.6},1:{hp:1,sp:5.2,s:.8,c:'#d98a2b',d:'#94591a',cd:1.3},2:{hp:5,sp:2.1,s:1.3,c:'#7b4e9a',d:'#513368',cd:1.1},8:{hp:4,sp:2.2,s:1.15,c:'#4a6a9a',d:'#2e4468',cd:1.8}};
 function summonMinions(b){
   const pool=wave<10?[0,1]:wave<15?[0,1,2]:[0,1,2,8],n=wave>=20?4:3,hm=(1+wave*.06);
@@ -558,7 +533,6 @@ function start(){
 function clearWave(){banner(t('wave')+' '+wave,t('waveClear'));sfx('wave',{vol:.8});if(wave>1)requestMidgameAd();wave++;rest=5;for(const p of PL){if(p.dead){p.dead=false;p.hp=p.max*.5;const al=PL.find(q=>!q.dead&&q!==p);if(al){p.x=al.x+U*2;p.y=al.y}}else p.hp=Math.min(p.max,p.hp+p.max*.25)}}
 function spawn(){
   const al=PL.filter(p=>!p.dead);if(!al.length)return;const T=al[R()*al.length|0];const hm=(1+wave*.1)*(1+(PL.length-1)*.35);
-  // Дроны улья (k=12) в обычный пул не попадают — их призывает только улей.
   const pool=[];UN.forEach((u,i)=>{if(!BOSS_TYPES.has(i)&&i!==12&&wave>=u)pool.push(i)});
   const type=boss?(boss=false,bossType()):pool[R()*pool.length|0];
   const s=[
@@ -578,7 +552,6 @@ function spawn(){
     {hp:6,sp:1.9,s:1.15,c:'#e85a1a',d:'#8a3010',cd:2.3},
     {hp:7,sp:1.7,s:1.2,c:'#3fb4e8',d:'#1d5a82',cd:99}
   ][type];
-  // Страховка: если для типа не нашлось параметров — не зависаем, а пропускаем спавн.
   if(!s){console.warn('Нет параметров для типа врага',type);return}
   const isBoss=BOSS_TYPES.has(type);
   const bossHpMul=isBoss?(1.45+wave*.035):1;
@@ -592,7 +565,6 @@ function spawn(){
     }
   }
 }
-// Sticks
 const st={L:null,R:null};
 addEventListener('pointerdown',e=>{
   if(state!=='play')return;
@@ -606,7 +578,6 @@ const up=e=>{for(const k in st)if(st[k]&&st[k].id===e.pointerId)st[k]=null};
 addEventListener('pointerup',up);addEventListener('pointercancel',up);
 addEventListener('contextmenu',e=>e.preventDefault());
 function vec(s){if(!s)return[0,0,0];const M=SU*2.6;let dx=s.x-s.ox,dy=s.y-s.oy;const d=Math.hypot(dx,dy);if(d<4)return[0,0,0];const m=Math.min(1,d/M);return[dx/d,dy/d,m]}
-// Keyboard fallback for desktop testing
 const keys={};addEventListener('keydown',e=>keys[e.key.toLowerCase()]=1);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 function moveTank(o,dx,dy){
   let nx=Math.max(o.r,Math.min(W-o.r,o.x+dx));
@@ -626,8 +597,6 @@ function hurtP(p,d){if(p.ch||p.dead)return;d*=(1-p.armor)*(buffs.shield?.4:1);p.
   else{p.hp=0;p.dead=true;boom(p.x,p.y,50,'#ff8a3a',U*9,.9);fx(p.x,p.y,4);if(p===P||PL.every(q=>q.dead))sfx(p===P?'explode':'boom',{vol:.8,pitch:.8});
     if(p===P)onLocalDeath();
     else if(online&&role==='host'&&PL.every(q=>q.dead))over()}}}
-// ---------- Тесла: электричество ----------
-// Рисует ломаную молнию (мягкое свечение + яркая жила). Alpha берётся из текущего globalAlpha.
 function zap(c,x1,y1,x2,y2,seg,jit,col,lw){
   const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L,pts=[[x1,y1]];
   for(let i=1;i<seg;i++){const f=i/seg,o=(R()-.5)*2*jit*Math.sin(f*Math.PI);pts.push([x1+dx*f+nx*o,y1+dy*f+ny*o])}
@@ -637,7 +606,6 @@ function zap(c,x1,y1,x2,y2,seg,jit,col,lw){
   c.globalAlpha=a0*.35;c.lineWidth=lw*3;c.strokeStyle=col;path();c.stroke();
   c.globalAlpha=a0;c.lineWidth=lw;c.strokeStyle='#e8fbff';path();c.stroke();
 }
-// Есть ли прямая видимость (нет стен на отрезке). Используется сеткой, которую строит flow().
 function losClear(x1,y1,x2,y2){
   if(!blkA||!GG)return true;
   const L=Math.hypot(x2-x1,y2-y1),n=Math.max(2,Math.ceil(L/(GG*.5)));
@@ -645,7 +613,6 @@ function losClear(x1,y1,x2,y2){
     if(ci<0||cj<0||ci>=GC||cj>=GR)continue;if(blkA[ci*GR+cj])return false}
   return true;
 }
-// Оглушение: игрок не едет и не стреляет t секунд. Затем ~0.8 сек невосприимчивости (нет «стан-лока»).
 function stunP(p,t){
   if(p.dead||p.ch||p.stun>0||p.stunImm>0)return;
   p.stun=t;p.stunImm=t+.8;
@@ -657,7 +624,7 @@ function stunP(p,t){
 let LANG='en';
 const STR={
   ru:{
-    title:'СТАЛЬНОЙ<br>РУБЕЖ',controls:'Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».',wave:'ВОЛНА',level:'УР.',sound:'ЗВУК',soundOn:'🔊 ЗВУК',soundOff:'🔇 ЗВУК',battle:'В БОЙ',again:'ЕЩЁ РАЗ',enemies:'ВРАГИ',garage:'ГАРАЖ',admin:'АДМИН',online:'Онлайн',offline:'⚪ Онлайн недоступен',pause:'ПАУЗА',resume:'ВЕРНУТЬСЯ',openOnline:'ОТКРЫТЬ ОНЛАЙН',closeOnline:'ЗАКРЫТЬ ОНЛАЙН',menu:'МЕНЮ',mode:'РЕЖИМ ИГРЫ',waves:'ВОЛНЫ',back:'НАЗАД',join:'ПРИСОЕДИНИТЬСЯ',createLobby:'СОЗДАТЬ ЛОББИ',create:'СОЗДАТЬ',start:'НАЧАТЬ',leave:'ВЫЙТИ',lobby:'ЛОББИ',players:'Игроков',minimum:'минимум',host:'хост',player:'игрок',you:'вы',waitingHost:'ждём, пока хост начнёт игру',room:'Код',downed:'ПОДБИТ',watchAd:'🎬 СМОТРЕТЬ РЕКЛАМУ',continueFor:'ПРОДОЛЖИТЬ ЗА',finish:'ЗАВЕРШИТЬ',reviveText:'Ты подбит, но можешь вернуться в бой.',reviveReward:'Посмотри рекламу до конца — вернёшься в бой с полным HP и продолжишь текущую волну.',adLoading:'Загрузка рекламы…',revCoins:'Или продолжи за монеты.',score:'Счёт',record:'Рекорд',waveWord:'Волна',buy:'КУПИТЬ',owned:'КУПЛЕН',equipped:'ЭКИПИРОВАН',select:'ВЫБРАТЬ',notEnough:'МАЛО МОНЕТ',coinsFor:'получай их за бои (счёт ÷ 40)',healthGrows:'Здоровье растёт на 10% с каждой волной.',server:'Сервер (xxx.onrender.com)',name:'Ваше имя',code:'Код',password:'Пароль (если есть)',passwordOptional:'Пароль для онлайна (необязательно)',newLobby:'Название лобби',noLobbies:'Лобби пока нет — создай своё.',connecting:'Подключение…',onlinePlayers:'Онлайн на сервере',disconnected:'Связь с сервером потеряна',notSet:'Адрес сервера не задан. Открой: МЕНЮ → В БОЙ → ОНЛАЙН и укажи его.',rotate:'📱<br>Поверни телефон<br>горизонтально',repair:'Ремкомплекты','reviveAd':'СПАСЕНИЕ ЗА РЕКЛАМУ','revive':'ВОЗВРАЩЕНИЕ В БОЙ',waveStart:'В БОЙ!',waveClear:'ЗАЧИЩЕНА!',wait:'Загрузка…',levelPick:'Выбери улучшение',respawn:'Возрождение в следующей волне',secondWind:'ВТОРОЕ ДЫХАНИЕ',stunned:'Оглушение',downedShort:'ПОДБИТ'},
+    title:'СТАЛЬНОЙ<br>РУБЕЖ',controls:'Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».',wave:'ВОЛНА',level:'УР.',sound:'ЗВУК',soundOn:'🔊 ЗВУК',soundOff:'🔇 ЗВУК',battle:'В БОЙ',again:'ЕЩЁ РАЗ',enemies:'ВРАГИ',garage:'ГАРАЖ',admin:'АДМИН',online:'Онлайн',offline:'⚪ Онлайн недоступен',pause:'ПАУЗА',resume:'ВЕРНУТЬСЯ',openOnline:'ОТКРЫТЬ ОНЛАЙН',closeOnline:'ЗАКРЫТЬ ОНЛАЙН',menu:'МЕНЮ',mode:'РЕЖИМ ИГРЫ',waves:'ВОЛНЫ',back:'НАЗАД',join:'ПРИСОЕДИНИТЬСЯ',createLobby:'СОЗДАТЬ ЛОББИ',create:'СОЗДАТЬ',start:'НАЧАТЬ',leave:'ВЫЙТИ',lobby:'ЛОББИ',players:'Игроков',minimum:'минимум',host:'хост',player:'игрок',you:'вы',waitingHost:'ждём, пока хост начнёт игру',room:'Код',downed:'ПОДБИТ',watchAd:'🎬 СМОТРЕТЬ РЕКЛАМУ',continueFor:'ПРОДОЛЖИТЬ ЗА',finish:'ЗАВЕРШИТЬ',reviveText:'Ты подбит, но можешь вернуться в бой.',reviveReward:'Посмотри рекламу до конца — вернёшься в бой с полным HP и продолжишь текущую волну.',adLoading:'Загрузка рекламы…',revCoins:'Или продолжи за монеты.',score:'Счёт',record:'Рекорд',waveWord:'Волна',buy:'КУПИТЬ',owned:'КУПЛЕН',equipped:'ЭКИПИРОВАН',select:'ВЫБРАТЬ',notEnough:'МАЛО МОНЕТ',coinsFor:'получай их за бои (счёт ÷ 40)',healthGrows:'Здоровье растёт на 10% с каждой волной.',server:'Сервер (xxx.onrender.com)',name:'Ваше имя',code:'Код',password:'Пароль (если есть)',passwordOptional:'Пароль для онлайна (необязательно)',newLobby:'Название лобби',noLobbies:'Лобби пока нет — создай своё.',connecting:'Подключение…',onlinePlayers:'Онлайн на сервере',disconnected:'Связь с сервером потеряна',notSet:'Адрес сервера не задан. Открой: МЕНЮ → В БОЙ → ОНЛАЙН и укажи его.',rotate:'📱<br>Поверни телефон<br>горизонтально',repair:'Ремкомплекты',reviveAd:'СПАСЕНИЕ ЗА РЕКЛАМУ',revive:'ВОЗВРАЩЕНИЕ В БОЙ',waveStart:'В БОЙ!',waveClear:'ЗАЧИЩЕНА!',wait:'Загрузка…',levelPick:'Выбери улучшение',respawn:'Возрождение в следующей волне',secondWind:'ВТОРОЕ ДЫХАНИЕ',stunned:'Оглушение',downedShort:'ПОДБИТ'},
   en:{
     title:'STEEL<br>FRONTIER',controls:'Left stick — move.<br>Right stick — aim and fire.<br>Pick up repair kits “+”.',wave:'WAVE',level:'LV.',sound:'SOUND',soundOn:'🔊 SOUND',soundOff:'🔇 SOUND',battle:'BATTLE',again:'PLAY AGAIN',enemies:'ENEMIES',garage:'GARAGE',admin:'ADMIN',online:'Online',offline:'⚪ Online unavailable',pause:'PAUSED',resume:'RESUME',openOnline:'OPEN ONLINE',closeOnline:'CLOSE ONLINE',menu:'MENU',mode:'GAME MODE',waves:'WAVES',back:'BACK',join:'JOIN',createLobby:'CREATE LOBBY',create:'CREATE',start:'START',leave:'LEAVE',lobby:'LOBBY',players:'Players',minimum:'minimum',host:'host',player:'player',you:'you',waitingHost:'waiting for the host to start',room:'Code',downed:'DOWNED',watchAd:'🎬 WATCH AD',continueFor:'CONTINUE FOR',finish:'FINISH',reviveText:'You are down, but you can return to battle.',reviveReward:'Watch the ad to the end — you will return to battle with full HP and keep this wave.',adLoading:'Loading ad…',revCoins:'Or continue with coins.',score:'Score',record:'Best',waveWord:'Wave',buy:'BUY',owned:'OWNED',equipped:'EQUIPPED',select:'SELECT',notEnough:'NOT ENOUGH COINS',coinsFor:'earn them from battles (score ÷ 40)',healthGrows:'Enemy health grows by 10% each wave.',server:'Server (xxx.onrender.com)',name:'Your name',code:'Code',password:'Password (if any)',passwordOptional:'Online password (optional)',newLobby:'Lobby name',noLobbies:'No lobbies yet — create one.',connecting:'Connecting…',onlinePlayers:'Players online',disconnected:'Connection to server lost',notSet:'Server address is not set. Open: BATTLE → ONLINE and enter it.',rotate:'📱<br>Rotate your phone<br>to landscape',repair:'Repair kits',reviveAd:'REVIVE FOR AD',revive:'BACK TO BATTLE',waveStart:'GO!',waveClear:'CLEARED!',wait:'Loading…',levelPick:'Choose an upgrade',respawn:'Respawn on the next wave',secondWind:'SECOND WIND',stunned:'Stunned',downedShort:'DOWNED'}
 };
@@ -680,7 +647,10 @@ function trText(v){
   const exact={
     'СПАСЕНИЕ ЗА РЕКЛАМУ':t('reviveAd'),'ВОЗВРАЩЕНИЕ В БОЙ':t('revive'),'ВТОРОЕ ДЫХАНИЕ':t('secondWind'),'ПОДБИТ':t('downedShort'),'ПОДБИТЫ':t('downedShort'),
     'Возрождение в следующей волне':t('respawn'),'В БОЙ!':t('waveStart'),'ЗАЧИЩЕНА!':t('waveClear'),'ЗАЧИЩЕНА':'CLEARED!','Онлайн':t('online'),'Волна':'Wave','ур.':'LV.','Отдых':'Rest','Игроков':'Players','игроков':'players','минимум':'minimum',
-    'Босс':'Boss','БОСС':'BOSS','Очень низкая':'Very low','Низкая':'Low','Средняя':'Medium','Высокая':'High','Очень высокая':'Very high'
+    'Босс':'Boss','БОСС':'BOSS','Очень низкая':'Very low','Низкая':'Low','Средняя':'Medium','Высокая':'High','Очень высокая':'Very high',
+    'СВЯЗЬ ВОССТАНОВЛЕНА':'CONNECTION RESTORED','Игра продолжается':'Game continues','СВЯЗЬ':'CONNECTION','Восстановлено':'Restored',
+    'Игрок переподключается…':'Player reconnecting…','СООБЩЕНИЕ АДМИНИСТРАТОРА':'ADMIN MESSAGE','ИГРА НАЧИНАЕТСЯ':'GAME STARTING',
+    'Загрузка…':t('wait'),'ОНЛАЙН':'ONLINE','Игроков: ':'Players: '
   };return exact[v]||v}
 function applyLocale(){
   document.documentElement.lang=LANG;
@@ -695,7 +665,6 @@ function applyLocale(){
 }
 function updateLocaleViews(){if($('bs').style.display!=='none'&&net.scr) { if(net.scr==='list') renderList(); else if(net.scr==='room') roomScreen(); } if(state==='pause'||ovl) pmRefresh?.();}
 function setLang(l){LANG=l==='ru'?'ru':'en';persistSet('lang',LANG);applyLocale()}
-// ================= CrazyGames midgame ad =================
 function requestMidgameAd(){
   if(!CG.on||!CG.ready||!CG.sdk?.ad||CG.adblock||TV.adPlaying)return;
   TV.adPlaying=true;cgGameplay(0);
@@ -707,12 +676,10 @@ function requestMidgameAd(){
     });
   }catch(e){TV.adPlaying=false;if(state==='play')cgGameplay(1)}
 }
-
-// ================= Второй шанс (rewarded-реклама / монеты) =================
 const REVIVE_COIN_COST=300;
 const RVS={active:false,timer:null,t:0,RAF:0,resolving:false,offered:false};
-let revDeaths=0; // смертей за забег (для троттлинга рекламы: не каждый раз)
-function revCooldown(){return revDeaths%2===0} // предлагаем на 1-й, 3-й, 5-й... смерти
+let revDeaths=0;
+function revCooldown(){return revDeaths%2===0}
 function reviveAllowed(){return !online||PL.length===1||(role==='guest')||(role==='host')}
 function setRevRing(frac){const num=Math.max(0,Math.ceil(RVS.t));$('rvn').textContent=num;const C=276.46;$('rvf').setAttribute('stroke-dashoffset',String(C*(1-frac)))}
 function startRevTimer(sec){
@@ -730,7 +697,7 @@ function offerRevive(){
   $('rvs').textContent=t('reviveText');
   $('rvad').style.display=(sdkEnvOn()&&!CG.mute)?'':'none';
   $('rvcoin').style.display=canCoin?'':'none';
-  $('rvr').textContent=(sdkEnvOn()&&!CG.mute)?t('rev_reward'):(canCoin?t('rev_coins_note'):'');
+  $('rvr').textContent=(sdkEnvOn()&&!CG.mute)?t('reviveReward'):(canCoin?t('revCoins'):'');
   $('rve').textContent='';$('rvh2').textContent='';
   $('rvad').disabled=false;$('rvcoin').disabled=false;$('rvend').disabled=false;
   sd.style.display='flex';
@@ -780,7 +747,7 @@ function requestReviveAd(){
   stopRevTimer();
   $('rvad').disabled=true;$('rvcoin').disabled=true;$('rvend').disabled=true;
   $('rva').style.display='block';
-  $('rvh2').textContent=t('ad_loading');
+  $('rvh2').textContent=t('adLoading');
   cgGameplay(0);
   try{
     CG.sdk.ad.requestAd('rewarded',{
@@ -807,7 +774,6 @@ function sdkEnvOn(){return CG.on}
 $('rvad').onclick=()=>{if(RVS.active)requestReviveAd()};
 $('rvcoin').onclick=()=>{if(RVS.active)reviveByCoins()};
 $('rvend').onclick=()=>{if(RVS.active)doEnd()};
-// Вызывается, когда погиб ЛОКАЛЬНЫЙ игрок (сингл или кооп).
 function onLocalDeath(){
   revDeaths++;
   const allDead=PL.every(q=>q.dead);
@@ -816,7 +782,6 @@ function onLocalDeath(){
   if(allDead)over();
   else if(!RVS.active)banner(t('downedShort'),t('respawn'));
 }
-// Чистое завершение забега. force=true — без предложения рекламы (уже отказывались).
 function over(force){
   state='over';RVS.active=false;
   stopRevTimer();$('rv').style.display='none';
@@ -832,7 +797,6 @@ function endRun(sc,w){
   $('cd').style.display='none';$('pm').style.display='none';$('rv').style.display='none';
   $('t').innerHTML=t('downed');$('m').innerHTML=`${t('score')}: ${sc}<br>${t('waveWord')}: ${w}<br>+${earn} 💰<br>${t('record')}: ${best}`;$('cn').style.display='none';$('go').textContent=t('again');$('ov').style.display='flex';drawMenuTank();
 }
-// Кнопка «В БОЙ / ЕЩЁ РАЗ»: если сейчас экран итогов — сразу запускаем новый забег.
 function goPressed(){
   try{audioKick()}catch(e){}
   if(state==='menu'&&$('ov').style.display==='flex'&&($('t').textContent===t('downed')||$('t').textContent==='ПОДБИТ')){start();return}
@@ -865,7 +829,6 @@ function update(dt){
     else{for(const k in buffs){buffs[k]-=dt;if(buffs[k]<=0)delete buffs[k]}spT-=dt;if(spawnQ>0&&spT<=0&&en.length<Math.min(10,5+wave)+(PL.length-1)*3){spawn();spawnQ--;spT=1.1}}
     if(spawnQ<=0&&!en.length&&rest<=0)clearWave();
   }
-  // enemies
   for(const e of en){
     let T=e.k==11?artilleryTarget(e):nearP(e.x,e.y);if(!T)continue;
     aimTrack(e,T,dt);
@@ -934,9 +897,6 @@ function update(dt){
       }
     }
     else if(e.k==13){
-      // Огнемётчик: пока игрок в зоне — льёт непрерывную струю пламени.
-      // Чем ближе цель, тем сильнее напор. Частицы пламени визуальные;
-      // урон наносится по конусу (предсказуемо, без наложения).
       const inRange = d<U*6.5 && state==='play';
       if(inRange){
         e.emitT = (e.emitT==null?0:e.emitT) - dt;
@@ -951,15 +911,9 @@ function update(dt){
             const travel=U*(1.5+R()*4.5);
             const tx=sx+Math.cos(a)*travel, ty=sy+Math.sin(a)*travel;
             if(hitsWall(tx,ty,U*.3)) continue;
-            flames.push({
-              x:sx, y:sy, tx, ty,
-              t:0.35+R()*.2, m:0.55,
-              r:U*(.32+R()*.28),
-              sp:U*(9+R()*4)
-            });
+            flames.push({x:sx,y:sy,tx,ty,t:0.35+R()*.2,m:0.55,r:U*(.32+R()*.28),sp:U*(9+R()*4)});
           }
           boom(sx,sy,3,'#ff8a2a',U*2,.2);
-          // Изредка капли оседают в горящую лужу.
           if(R()<0.22){
             const ang=e.t+(R()-.5)*.55;
             const dist=U*(2.2+R()*3.2);
@@ -969,7 +923,6 @@ function update(dt){
             }
           }
         }
-        // Прямой урон: игрок в конусе ~45° и в радиусе.
         if(d<U*6){
           const toPx=(T.x-e.x)/d, toPy=(T.y-e.y)/d;
           const fwdX=Math.cos(e.t), fwdY=Math.sin(e.t);
@@ -988,9 +941,7 @@ function update(dt){
         const lead=.55+Math.min(.45,d/(U*20)*.35);
         const a=predictAim(e,T,lead,U*(.55+R()*.55));
         const EX=e.x,EY=e.y;
-        // главный снаряд — с упреждением
         pushStrike(a.x,a.y,U*2.15,1.65,30,1,EX,EY,7);
-        // + 1–2 снаряда в случайных точках рядом с игроком
         const extra=1+(R()<.5?1:0);
         for(let i=0;i<extra;i++){
           const ra=R()*6.283,rr=U*(1.6+R()*3.4);
@@ -1006,9 +957,7 @@ function update(dt){
         const lead=.6+Math.min(.45,d/(U*27)*.4),a=predictAim(e,T,lead,U*(.7+R()*.8));
         const dmg=Math.round(30*e.dmgMul);
         const EX=e.x,EY=e.y,RR=U*3.0;
-        // главный снаряд — с упреждением
         pushStrike(a.x,a.y,RR,1.35,dmg,5,EX,EY,11);
-        // + 3 снаряда в случайных точках вокруг игрока, паттернов больше нет
         for(let i=0;i<3;i++){
           const ra=R()*6.283,rr=U*(1.8+R()*4.0);
           pushStrike(T.x+Math.cos(ra)*rr,T.y+Math.sin(ra)*rr,RR*.95,1.3+R()*.75,dmg,5,EX,EY,11);
@@ -1017,8 +966,6 @@ function update(dt){
       }
     }
     else if(e.k==14){
-      // Тесла: 3 лампочки заряда (по ~0.95 сек каждая) → короткое «полное» свечение 0.45 сек → заряд-снаряд.
-      // Заряд копится, только если цель в радиусе и нет стены на линии огня.
       e.tfl=Math.max(0,(e.tfl||0)-dt);
       const tipX=e.x+Math.cos(e.t)*U*1.5,tipY=e.y+Math.sin(e.t)*U*1.5;
       if(e.hold>0){
@@ -1037,7 +984,6 @@ function update(dt){
           if(e.lamp>=3){e.lamp=3;e.hold=.45}
         }
       }else{
-        // цели нет или стена на пути — заряд постепенно спадает
         e.lt=Math.max(0,e.lt-dt*.6);e.dis+=dt;
         if(e.dis>1.1&&e.lamp>0){e.lamp--;e.dis=0}
       }
@@ -1048,7 +994,6 @@ function update(dt){
       e.cool=e.cd+R()*(e.boss?.7:1.2);
     }
   }
-  // bullets
   for(const b of bl){
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.l-=dt;
     if(b.x<0||b.x>W||b.y<0||b.y>H)b.l=0;
@@ -1056,7 +1001,6 @@ function update(dt){
     if(b.l<=0)continue;
     if(b.own){for(const e of en)if(Math.hypot(b.x-e.x,b.y-e.y)<e.r+3){
       if(b.h.includes(e))continue;b.h.push(e);if(b.pc>0)b.pc--;else b.l=0;boom(b.x,b.y,5,'#fff',U*4,.3);const ow=b.o||P;hitE(e,b.dmg*(R()<ow.crit?2:1),b);if(ow.frost)e.slow=1.5;if(ow.splash)for(const o of en)if(o!==e&&Math.hypot(o.x-b.x,o.y-b.y)<U*(1+ow.splash))hitE(o,b.dmg*.5);
-      
       break}}
     else if(state==='play'){for(const p of PL){if(!p.dead&&Math.hypot(b.x-p.x,b.y-p.y)<p.r+3){b.l=0;hurtP(p,b.dmg);if(b.tes)stunP(p,1);boom(b.x,b.y,8,b.tes?'#8ff4ff':'#ff5a3a',U*5,.4);break}}}
   }
@@ -1064,7 +1008,6 @@ function update(dt){
   for(const p of pt){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.95;p.vy*=.95;p.l-=dt}pt=pt.filter(p=>p.l>0);
   if(state==='play')pk=pk.filter(k=>{k.t=(k.t==null?10:k.t)-dt;if(k.t<=0)return false;for(const p of PL){if(!p.dead&&Math.hypot(k.x-p.x,k.y-p.y)<U*1.2*(1+p.mag)){p.hp=Math.min(p.max,p.hp+30);boom(k.x,k.y,12,'#7dff8a',U*4,.5);if(p===P)sfx('heal',{vol:.6,pitch:.95+R()*.12});else sfxAt('heal',k.x,k.y,{vol:.3});return false}}return true});
   for(const z of zn){z.t-=dt;if(z.t<=0&&z.k==0&&state==='play')blast(z.x,z.y,z.r,z.d)}zn=zn.filter(z=>z.t>0);
-  // Лужи огня от огнемётчика: тик урона каждые 0.25 сек.
   for(const f of fires){
     f.t-=dt; f.nextTick-=dt;
     if(f.nextTick<=0&&state==='play'){
@@ -1073,7 +1016,6 @@ function update(dt){
     }
   }
   fires=fires.filter(f=>f.t>0);
-  // Пламя летит к цели и затухает. Урона не наносит — только визуал.
   for(const f of flames){
     f.t-=dt;
     const ddx=f.tx-f.x, ddy=f.ty-f.y, dd=Math.hypot(ddx,ddy)||1;
@@ -1115,7 +1057,6 @@ function guestUpdate(dt){
 }
 function drawTank(ctx,u,t,c1,c2,s){
   ctx.save();ctx.translate(t.x,t.y);
-  // ====================== ДРОН УЛЬЯ (k=12) ======================
   if(t.k==12){
     const r=u*.62*s;
     const t2=performance.now()/1000+(t.id||0)*.37;
@@ -1149,21 +1090,11 @@ function drawTank(ctx,u,t,c1,c2,s){
       ctx.rotate(spin*(ax*ay));
       ctx.globalAlpha=.28;
       ctx.fillStyle='#e2e2d8';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, r*.46, r*.07, 0, 0, Math.PI*2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(0, 0, r*.07, r*.46, 0, 0, Math.PI*2);
-      ctx.fill();
+      ctx.beginPath();ctx.ellipse(0, 0, r*.46, r*.07, 0, 0, Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(0, 0, r*.07, r*.46, 0, 0, Math.PI*2);ctx.fill();
       ctx.globalAlpha=1;
-      ctx.fillStyle='#2a2a22';
-      ctx.beginPath();
-      ctx.arc(0, 0, r*.13, 0, Math.PI*2);
-      ctx.fill();
-      ctx.fillStyle='#5a5a4e';
-      ctx.beginPath();
-      ctx.arc(0, 0, r*.055, 0, Math.PI*2);
-      ctx.fill();
+      ctx.fillStyle='#2a2a22';ctx.beginPath();ctx.arc(0, 0, r*.13, 0, Math.PI*2);ctx.fill();
+      ctx.fillStyle='#5a5a4e';ctx.beginPath();ctx.arc(0, 0, r*.055, 0, Math.PI*2);ctx.fill();
       ctx.restore();
     }
     const nose=r*.78, tail=-r*.6, half=r*.45;
@@ -1233,7 +1164,6 @@ function drawTank(ctx,u,t,c1,c2,s){
     ctx.restore();
     return;
   }
-  // =============================================================
   if(t.k==6&&t.tick!=null){const p=1-t.tick/1.3;ctx.strokeStyle='rgba(255,60,40,'+(0.25+0.5*p)+')';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,u*1.2+u*2.3*p,0,6.28);ctx.stroke()}
   ctx.rotate(t.a);
   const l=u*.95*s,w=u*.72*s;
@@ -1255,7 +1185,6 @@ function drawTank(ctx,u,t,c1,c2,s){
     ctx.strokeStyle='#c58aff';ctx.lineWidth=1.5;ctx.strokeRect(-l*1.1,-w*.4,l*.4,w*.8);
   }
   if(t.k==13){
-    // Корпус: два боковых баллона с топливом, шланги и задний бак. Никаких длинных труб на носу.
     for(const sd of [-1,1]){
       const by=sd*w*.62;
       ctx.fillStyle='#2a2a26';ctx.beginPath();ctx.roundRect?ctx.roundRect(-l*.55,by-w*.17,l*1.0,w*.34,w*.17):ctx.rect(-l*.55,by-w*.17,l*1.0,w*.34);ctx.fill();
@@ -1268,7 +1197,6 @@ function drawTank(ctx,u,t,c1,c2,s){
     ctx.fillStyle='#ffb03a';ctx.fillRect(-l*1.05,-w*.06,l*.22,w*.12);
   }
   if(t.k==14){
-    // Корма: панель с тремя светодиодами заряда.
     const lamp=t.lamp==null?2:t.lamp,lt=t.lt||0,hold=t.hold||0,now=performance.now();
     ctx.fillStyle='#0c1a22';ctx.fillRect(-l*.86,-w*.52,l*.34,w*1.04);
     ctx.strokeStyle='#1d5a82';ctx.lineWidth=1.5;ctx.strokeRect(-l*.86,-w*.52,l*.34,w*1.04);
@@ -1310,7 +1238,6 @@ function drawTank(ctx,u,t,c1,c2,s){
     for(let i=0;i<3;i++){const a=tm*(cast?3:1.4)+i*2.094;ctx.beginPath();ctx.arc(Math.cos(a)*w*.95,Math.sin(a)*w*.95,w*.1,0,6.28);ctx.fill()}
   }
   if(t.k==13){
-    // Раструб-огнемёт: короткий, расширяющийся, с решёткой и дежурным огоньком.
     const pl2=.5+.5*Math.sin(performance.now()/120+(t.id||0));
     ctx.fillStyle='#3a1a0a';ctx.beginPath();ctx.moveTo(w*.3,-w*.2);ctx.lineTo(l*.85,-w*.5);ctx.lineTo(l*.85,w*.5);ctx.lineTo(w*.3,w*.2);ctx.closePath();ctx.fill();
     ctx.strokeStyle='#e85a1a';ctx.lineWidth=2;ctx.stroke();
@@ -1322,7 +1249,6 @@ function drawTank(ctx,u,t,c1,c2,s){
     ctx.globalAlpha=1;
   }
   if(t.k==14){
-    // Катушка Теслы вместо ствола: медные витки, сужающиеся к игле, и шар-разрядник на конце.
     const lamp=t.lamp==null?2:t.lamp,lt=t.lt||0,hold=t.hold||0,tfl=t.tfl||0,now=performance.now();
     const inten=lamp+lt,tipx=l*1.3;
     for(let i=0;i<5;i++){
@@ -1335,7 +1261,6 @@ function drawTank(ctx,u,t,c1,c2,s){
     ctx.globalAlpha=Math.min(.9,g);ctx.fillStyle='#6fe0ff';ctx.beginPath();ctx.arc(tipx,0,w*(.5+.18*inten),0,6.28);ctx.fill();
     ctx.globalAlpha=1;ctx.fillStyle='#dfeaf3';ctx.beginPath();ctx.arc(tipx,0,w*.2,0,6.28);ctx.fill();
     ctx.strokeStyle='#5b6b7a';ctx.lineWidth=1.5;ctx.stroke();
-    // Разряды вокруг катушки: чем выше заряд, тем их больше и они длиннее. При полном заряде — «херачит» во все стороны.
     const n=hold>0?5:Math.ceil(inten*.8),chance=hold>0?1:(inten>0?.35+.2*inten:.06);
     if(R()<chance){
       for(let i=0;i<Math.max(1,n);i++){
@@ -1344,14 +1269,12 @@ function drawTank(ctx,u,t,c1,c2,s){
         zap(ctx,tipx,0,tipx+Math.cos(a)*len,Math.sin(a)*len,5,w*.16,'#6fe0ff',1.4);
       }
     }
-    if(inten>0&&R()<.5){ // дуги между витками
+    if(inten>0&&R()<.5){
       const i=R()*4|0,x0=w*.1+i*l*.2,hh=w*(.34-i*.05),hh2=w*(.34-(i+1)*.05),sg=R()<.5?-1:1;
       ctx.globalAlpha=.85;zap(ctx,x0+l*.1,sg*hh,x0+l*.3,sg*hh2,3,w*.08,'#9fefff',1.1);
     }
-    if(hold>0){ // искры бьют по корпусу
-      for(let i=0;i<2;i++){ctx.globalAlpha=.8;zap(ctx,tipx,0,-l*.5+R()*l*.5,(R()-.5)*w*1.5,6,w*.2,'#9fefff',1.2)}
-    }
-    if(tfl>0){ // вспышка выстрела
+    if(hold>0){for(let i=0;i<2;i++){ctx.globalAlpha=.8;zap(ctx,tipx,0,-l*.5+R()*l*.5,(R()-.5)*w*1.5,6,w*.2,'#9fefff',1.2)}}
+    if(tfl>0){
       ctx.globalAlpha=Math.min(1,tfl/.28)*.75;ctx.fillStyle='#bff6ff';
       ctx.beginPath();ctx.arc(tipx,0,w*(.5+(1-tfl/.28)*.9),0,6.28);ctx.fill();
       ctx.globalAlpha=Math.min(1,tfl/.28);ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(tipx,0,w*.22,0,6.28);ctx.fill();
@@ -1429,7 +1352,6 @@ function draw(){
       }
     }
   }
-  // Пламя в полёте от огнемётчика — три слоя, живое покачивание.
   for(const f of flames){
     const a=Math.max(0,f.t/f.m);
     const wob=Math.sin(performance.now()/40+f.x*.2)*f.r*.18;
@@ -1447,7 +1369,6 @@ function draw(){
     cx.beginPath();cx.arc(f.x,f.y,f.r*.17,0,6.28);cx.fill();
     cx.globalAlpha=1;
   }
-  // Лужи огня от огнемётчика.
   for(const f of fires){
     const a=Math.max(0,f.t/f.m);
     cx.globalAlpha=a*.5;
@@ -1498,7 +1419,7 @@ function draw(){
   }
   for(const p of pt){cx.globalAlpha=Math.max(0,p.l/p.m);cx.fillStyle=p.c;cx.fillRect(p.x,p.y,p.s,p.s)}cx.globalAlpha=1;
   cx.restore();
-  if(P&&P.stun>0){cx.fillStyle='rgba(120,220,255,'+(.1+.08*Math.sin(performance.now()/35))+')';cx.fillRect(0,0,SPX,SPY);cx.fillStyle='#e8fbff';cx.font='bold 22px Impact,sans-serif';cx.textAlign='center';cx.fillText('⚡ ОГЛУШЕН',SPX/2,SPY*.22)}
+  if(P&&P.stun>0){cx.fillStyle='rgba(120,220,255,'+(.1+.08*Math.sin(performance.now()/35))+')';cx.fillRect(0,0,SPX,SPY);cx.fillStyle='#e8fbff';cx.font='bold 22px Impact,sans-serif';cx.textAlign='center';cx.fillText('⚡ '+(LANG==='en'?'STUNNED':'ОГЛУШЕН'),SPX/2,SPY*.22)}
   drawSt(st.L,'#f1ead2');drawSt(st.R,'#e8b33a');
   {const mw=110,mh=mw*H/W,mx=SPX-mw-12,my=64;cx.globalAlpha=.65;cx.fillStyle='#000';cx.fillRect(mx,my,mw,mh);for(const e of en){cx.fillStyle=e.k==5?'#f0f':e.k==13?'#f80':e.k==14?'#4cf':'#f55';cx.fillRect(mx+e.x/W*mw-1.5,my+e.y/H*mh-1.5,3,3)}for(const p of PL){if(p.dead)continue;cx.fillStyle=p===P?'#fff':'#6cf';cx.fillRect(mx+p.x/W*mw-2,my+p.y/H*mh-2,4,4)}cx.strokeStyle='#fff';cx.lineWidth=1;cx.strokeRect(mx+camx/W*mw,my+camy/H*mh,SW/W*mw,SH/H*mh);cx.globalAlpha=1}
 }
@@ -1521,17 +1442,18 @@ function enemyScreen(){
   $('bk').onclick=()=>$('bs').style.display='none';
 }
 function garageScreen(){
-  $('bs').innerHTML=`<h2>${t('garage')}</h2><p>💰 ${coins}${LANG==='en'?' coins':' монет'} — ${t('coinsFor')}</p><div class="gr">`+TANKS.map(t=>{
-    const isOwn=owned.includes(t.id),isEq=equip===t.id;
-    const status=isEq?t('equipped'):isOwn?t('owned'):t.cost+' 💰'; const action=isEq?t('equipped'):isOwn?t('select'):t('buy');
-    return `<div class="en"><canvas class="ec" data-c1="${t.c1}" data-c2="${t.c2}" width="80" height="80"></canvas><div><b>${tankName(t.id)}</b><em>${tankPerk(t.id)}</em><i>${status}</i><br><button data-id="${t.id}" class="gb">${action}</button></div></div>`;
+  $('bs').innerHTML=`<h2>${t('garage')}</h2><p>💰 ${coins}${LANG==='en'?' coins':' монет'} — ${t('coinsFor')}</p><div class="gr">`+TANKS.map(tk=>{
+    const isOwn=owned.includes(tk.id),isEq=equip===tk.id;
+    const status=isEq?t('equipped'):isOwn?t('owned'):tk.cost+' 💰';
+    const action=isEq?t('equipped'):isOwn?t('select'):t('buy');
+    return `<div class="en"><canvas class="ec" data-c1="${tk.c1}" data-c2="${tk.c2}" width="80" height="80"></canvas><div><b>${tankName(tk.id)}</b><em>${tankPerk(tk.id)}</em><i>${status}</i><br><button data-id="${tk.id}" class="gb">${action}</button></div></div>`;
   }).join('')+'</div><button id="bk">'+t('back')+'</button>';
   $('bs').style.display='block';
   $('bs').querySelectorAll('.ec').forEach(cv=>{const gx=cv.getContext('2d');gx.translate(40,44);drawTank(gx,15,{x:0,y:0,a:0,t:-.6},cv.dataset.c1,cv.dataset.c2,1)});
   $('bs').querySelectorAll('.gb').forEach(b=>{b.onclick=()=>{
-    const t=TANKS.find(x=>x.id===b.dataset.id);
-    if(owned.includes(t.id)){equip=t.id}
-    else if(coins>=t.cost){coins-=t.cost;owned.push(t.id);equip=t.id}
+    const tk=TANKS.find(x=>x.id===b.dataset.id);
+    if(owned.includes(tk.id)){equip=tk.id}
+    else if(coins>=tk.cost){coins-=tk.cost;owned.push(tk.id);equip=tk.id}
     else{b.textContent=t('notEnough');return}
     saveGarage();coinLabel();garageScreen();drawMenuTank();
   }});
@@ -1564,7 +1486,7 @@ function toMenu(){
   if(net.lobby)netLeave();net.fromPause=false;
   online=false;role=null;ovl=false;P.ch=false;state='menu';setPres(0);$('pm').style.display='none';$('cd').style.display='none';cgGameplay(0);
   $('t').innerHTML=t('title');$('m').innerHTML=`${t('score')}: ${sc} · ${t('waveWord')}: ${wave}<br>+${earn} 💰 · ${t('record')}: ${best}`;
-  $('cn').style.display='';coinLabel();$('go').textContent='В БОЙ';$('ov').style.display='flex';drawMenuTank();
+  $('cn').style.display='';coinLabel();$('go').textContent=t('battle');$('ov').style.display='flex';drawMenuTank();
 }
 $('pb').onclick=pauseGame;$('pr').onclick=resumeGame;$('pmn').onclick=toMenu;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!online)pauseGame()});
@@ -1592,7 +1514,7 @@ try{net.resume=sessionStorage.getItem('tankResume')||''}catch(e){}
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function saveResumeToken(t){net.resume=t||'';try{if(t)sessionStorage.setItem('tankResume',t);else sessionStorage.removeItem('tankResume')}catch(e){}}
 function srvAddr(){
-  if(CG.on)return ONLINE_SERVER;              // на CrazyGames файлы статичны, а онлайн-сервер — Render
+  if(CG.on)return ONLINE_SERVER;
   if(/^https?:$/.test(location.protocol)&&!window.claude)return location.host;
   let u=persistGet('srv','');
   return u
@@ -1863,7 +1785,6 @@ $('pms').onclick=()=>send({t:'start'});
 $('pmc').onclick=()=>{netLeave();net.fromPause=false;pmRefresh()};
 requestAnimationFrame(t=>{last=t;loop(t)});
 drawMenuTank();
-// Загрузка завершена только после SDK/data initialization. gameplayStart отвечает за первый игровой вход.
 saveReadyPromise.then(()=>{
   $('go').disabled=false;
   cgLoading(0);
