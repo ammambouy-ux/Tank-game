@@ -128,3 +128,16 @@
   `index.html`; сервер раздаёт файлы сам (маршруты `/api/sfx` и
   `/PackSFXTanks/*`).
 - При запуске из файла: положи `PackSFXTanks` рядом с `index.html`.
+
+## CrazyGames 1.3.0
+
+- CrazyGames SDK v3 integrated (`game`, `ad`, `data`).
+- Progress is saved through `SDK.data` on CrazyGames with migration from legacy localStorage keys (`tb`, `tc`, `to`, `te`, `snd`, `lang`, `pn`, `srv`).
+- English is the default fallback language; Russian remains available through the RU/EN toggle.
+- Rewarded second-chance and midgame ads are requested only through the CrazyGames SDK. In Basic Launch, ad callbacks fail safely and the game remains playable.
+- CrazyGames controls the fullscreen experience; the game's own fullscreen request is disabled on CrazyGames.
+- Audio respects `SDK.game.settings.muteAudio`.
+- Initial gameplay is intentionally started only after SDK/data initialization so CrazyGames can measure the initial download window. Audio packs are lazy-loaded after user interaction.
+- Online multiplayer on CrazyGames connects to `wss://steel-frontier.onrender.com`.
+
+For the CrazyGames submission, enable **Progress Save** in the portal. The optional `game.updateRoom()` / Instant Multiplayer room integration is not included in this build.

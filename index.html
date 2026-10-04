@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#141a10">
 <title>Стальной рубеж</title>
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js" defer></script>
 <style>
 :root{--bg:#1c2417;--fg:#f1ead2;--acc:#e8b33a;--bad:#d9573f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c2417;--fg:#f1ead2}}
@@ -79,18 +80,126 @@ button.sm.sc{box-shadow:0 3px 0 #000}
 button:disabled{opacity:.5}
 .lr{background:#2c3a22;border-left:5px solid var(--acc);padding:8px 12px;display:flex;justify-content:space-between;gap:10px;font-family:system-ui,sans-serif;font-size:14px;cursor:pointer}
 #ost{font-family:system-ui,sans-serif;font-size:14px;margin:4px 0}
+/* Экран «Второй шанс» (rewarded-реклама) */
+#rv{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,2vh,18px);background:rgba(10,14,8,.92);text-align:center;padding:16px}
+#rv h2{margin:0;font-size:clamp(34px,11vh,60px);font-weight:400;color:var(--bad);text-shadow:3px 3px 0 #000}
+#rv .sub{font-family:system-ui,sans-serif;font-size:clamp(12px,3.4vh,16px);max-width:min(90vw,460px);opacity:.95}
+#rv .sub b{color:var(--acc)}
+#rv .reward{font-family:system-ui,sans-serif;font-size:clamp(12px,3.2vh,15px);color:var(--ok);max-width:min(90vw,460px)}
+#rv .btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+#rv button{font-size:clamp(14px,4.2vh,22px);padding:clamp(8px,2.2vh,14px) clamp(16px,4vw,32px);min-width:min(40vw,220px)}
+#rv button.plain{background:#2b3a22;color:var(--fg);box-shadow:0 5px 0 #000}
+#rv .alt{margin-top:2px}
+#rv .timer{position:relative;width:clamp(56px,15vh,92px);height:clamp(56px,15vh,92px)}
+#rv .timer svg{transform:rotate(-90deg);width:100%;height:100%}
+#rv .timer .bg{fill:none;stroke:#0008;stroke-width:7}
+#rv .timer .fg{fill:none;stroke:var(--acc);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset .95s linear}
+#rv .timer .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(20px,6vh,34px);color:var(--acc)}
+#rv .hint{font-family:system-ui,sans-serif;font-size:clamp(11px,2.6vh,13px);opacity:.6}
+#rv .credits{font-family:system-ui,sans-serif;font-size:clamp(12px,3vh,15px);opacity:.85}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
-<div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
-<div id="bs"></div><script>
-const GAME_VERSION='1.2.5';
+<div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
+<div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
+const GAME_VERSION='1.3.0';
+// ================= CrazyGames SDK =================
+// Онлайн-сервер (Render) для подключения из iframe CrazyGames (их хостинг статичный).
+const ONLINE_SERVER='steel-frontier.onrender.com';
+const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false};
+const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
+const SAVE={tb:'0',tc:'0',to:'["std"]',te:'std',snd:'1',lang:'',pn:'',srv:''};
+let saveReady=false,saveReadyResolve;
+const saveReadyPromise=new Promise(r=>{saveReadyResolve=r});
+function safeLocalGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function safeLocalSet(k,v){try{localStorage.setItem(k,String(v))}catch(e){}}
+function safeLocalRemove(k){try{localStorage.removeItem(k)}catch(e){}}
+function dataApi(){return CG.on&&CG.ready&&CG.sdk&&CG.sdk.data&&typeof CG.sdk.data.getItem==='function' ? CG.sdk.data : null}
+function persistGet(k,fallback=''){
+  if(dataApi()){
+    try{const v=CG.sdk.data.getItem(k);return v==null?fallback:String(v)}catch(e){return fallback}
+  }
+  const v=safeLocalGet(k);return v==null?fallback:v;
+}
+function persistSet(k,v){
+  SAVE[k]=String(v);
+  const d=dataApi();
+  if(d){try{d.setItem(k,String(v));return}catch(e){}}
+  safeLocalSet(k,v);
+}
+function persistRemove(k){delete SAVE[k];const d=dataApi();if(d){try{d.removeItem(k);return}catch(e){}}safeLocalRemove(k)}
+function readLocalSnapshot(){for(const k of SAVE_KEYS){const v=safeLocalGet(k);if(v!=null)SAVE[k]=v}}
+function applySaveState(){
+  try{best=+(SAVE.tb||'0')||0}catch(e){}
+  try{coins=+(SAVE.tc||'0')||0}catch(e){}
+  try{owned=JSON.parse(SAVE.to||'["std"]');if(!Array.isArray(owned))owned=['std'];if(!owned.includes('std'))owned.unshift('std')}catch(e){owned=['std']}
+  equip=SAVE.te||'std';if(!TANKS.some(t=>t.id===equip))equip='std';
+  sndOn=SAVE.snd!=='0';
+  myName=String(SAVE.pn||'').trim().slice(0,14)||('Player'+(100+R()*900|0));
+  if(!SAVE.pn)persistSet('pn',myName);
+}
+function defaultLocaleFromSdk(){
+  const loc=String(CG.sdk?.user?.systemInfo?.locale||navigator.language||'en').toLowerCase();
+  return loc.startsWith('ru')?'ru':'en';
+}
+async function initPersistence(){
+  readLocalSnapshot();
+  if(CG.on&&dataApi()){
+    for(const k of SAVE_KEYS){
+      try{
+        const remote=CG.sdk.data.getItem(k);
+        if(remote!=null){SAVE[k]=String(remote)}
+        else if(SAVE[k]!=null && SAVE[k]!==''){CG.sdk.data.setItem(k,String(SAVE[k]))}
+      }catch(e){}
+    }
+    if(!SAVE.lang) SAVE.lang=defaultLocaleFromSdk();
+    for(const k of ['tb','tc','to','te','snd','pn','lang']) if(SAVE[k]!=null) {try{CG.sdk.data.setItem(k,String(SAVE[k]))}catch(e){}}
+    // После миграции CrazyGames Data Module является единственным источником сохранений на CG.
+    for(const k of SAVE_KEYS) safeLocalRemove(k);
+  } else {
+    if(!SAVE.lang) SAVE.lang=defaultLocaleFromSdk();
+    if(!SAVE.pn)SAVE.pn='Player'+(100+R()*900|0);
+    for(const k of ['lang','pn']) if(SAVE[k]) safeLocalSet(k,SAVE[k]);
+  }
+  applySaveState();
+  LANG=SAVE.lang==='ru'?'ru':'en';
+  saveReady=true;if(saveReadyResolve)saveReadyResolve();
+  applyLocale();applyGate();coinLabel();sndLabel();
+}
+async function cgInit(){
+  const started=Date.now();
+  while(!(window.CrazyGames&&window.CrazyGames.SDK) && Date.now()-started<10000) await new Promise(r=>setTimeout(r,150));
+  if(!(window.CrazyGames&&window.CrazyGames.SDK)){
+    CG.ready=false;CG.on=false;await initPersistence();return;
+  }
+  const S=window.CrazyGames.SDK;
+  try{await S.init()}catch(e){}
+  try{
+    CG.sdk=S;CG.ready=true;CG.env=S.environment||'disabled';CG.on=CG.env==='crazygames';
+    cgLoading(1);
+    try{CG.mute=!!(S.game&&S.game.settings&&S.game.settings.muteAudio)}catch(e){}
+    try{S.game.addSettingsChangeListener(s=>{CG.mute=!!s.muteAudio;applyGate()})}catch(e){}
+    try{if(S.ad&&S.ad.hasAdblock)CG.adblock=!!(await S.ad.hasAdblock())}catch(e){}
+  }catch(e){}
+  await initPersistence();
+}
+function cgGameplay(v){try{if(!CG.ready||!CG.sdk?.game)return;v?CG.sdk.game.gameplayStart?.():CG.sdk.game.gameplayStop?.()}catch(e){}}
+function cgLoading(v){try{if(CG.ready&&CG.sdk?.game){v?CG.sdk.game.loadingStart?.():CG.sdk.game.loadingStop?.()}}catch(e){}}
+function cgHappy(){try{if(CG.ready&&CG.sdk?.game?.happytime)CG.sdk.game.happytime()}catch(e){}}
+function cgContext(){try{if(CG.ready&&CG.sdk?.game?.setGameContext)CG.sdk.game.setGameContext({version:GAME_VERSION,wave:wave,score:score,coins:coins,tank:equip,online:!!online})}catch(e){}}
+// Единый привратник звука: пользовательский тумблер + требование CrazyGames muteAudio.
+function applyGate(){
+  if(CG.mute)try{musicStop()}catch(e){}
+  const b=document.getElementById('snd');
+  if(b){b.disabled=CG.mute;b.style.opacity=CG.mute?.5:1;if(CG.mute)b.textContent='🔇 '+t('sound')}
+  if(CG.on){const a=document.getElementById('adm');if(a)a.style.display='none'}
+}
+function sndAllowed(){return sndOn&&!CG.mute}
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const $=id=>document.getElementById(id);
 let W,H,SW,SH,SPX,SPY,SU,VS,camx=0,camy=0,U,dpr,state='menu',best=0;
-try{best=+localStorage.getItem('tb')||0}catch(e){}
 function resize(){dpr=Math.min(devicePixelRatio||1,2);SPX=innerWidth;SPY=innerHeight;cv.width=SPX*dpr;cv.height=SPY*dpr;cx.setTransform(dpr,0,0,dpr,0,0);U=24;SU=Math.max(16,Math.min(SPX,SPY)/16);VS=SU/U;SW=SPX/VS;SH=SPY/VS;W=U*80;H=U*44}
 resize();addEventListener('resize',resize);
 // ==================== ЗВУК ====================
@@ -98,7 +207,6 @@ resize();addEventListener('resize',resize);
 // Адаптировано: статичная функция zzfxSamples(...) + кэш AudioBuffer + панорама/затухание.
 const AUDIO_V=.5;
 let AC=null,sndOn=true;
-try{sndOn=localStorage.getItem('snd')!=='0'}catch(e){}
 function audioInit(){if(AC)return AC;try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){AC=null}return AC}
 function audioResume(){const c=audioInit();if(c&&c.state==='suspended'){try{c.resume()}catch(e){}}}
 function zzfxSamples(volume=1,randomness=.05,frequency=220,attack=0,sustain=0,release=.1,shape=0,shapeCurve=1,slide=0,deltaSlide=0,pitchJump=0,pitchJumpTime=0,repeatTime=0,noise=0,modulation=0,bitCrush=0,delay=0,sustainVolume=1,decay=0,tremolo=0,filter=0){
@@ -191,9 +299,9 @@ async function loadSfxPack(){
   if(sfxPackLoading||sfxPackDone)return;sfxPackLoading=true;
   const c=audioInit();
   try{
-    if(/^https?:$/.test(location.protocol)){
+    if(/^https?:$/.test(location.protocol)&&!CG.on){
       try{
-        const r=await fetch('/api/sfx',{cache:'no-store'});
+        const r=await fetch('api/sfx',{cache:'no-store'});
         if(r.ok){const list=await r.json();const g={};
           for(const f of (Array.isArray(list)?list:[])){const b=baseName(f);if(SNDDEF[b]){(g[b]=g[b]||[]).push('PackSFXTanks/'+f)}}
           await Promise.all(Object.entries(g).map(([n,u])=>loadMp3Group(c,n,u)));
@@ -201,7 +309,7 @@ async function loadSfxPack(){
       }catch(e){}
     }
   }catch(e){}
-  // Если через API ничего не поднялось (file:// или пусто) — пробуем <audio> по именам.
+  // Если через API ничего не поднялось (CG, file:// или пусто) — пробуем <audio> по именам.
   if(!Object.keys(SFX_MP3).length&&!Object.keys(SFX_HTML).length){
     const bases=Object.keys(SNDDEF);
     const cands=['PackSFXTanks/','../PackSFXTanks/','../../PackSFXTanks/'];
@@ -211,7 +319,7 @@ async function loadSfxPack(){
 }
 function pickMp3(n){const a=SFX_MP3[n];if(!a||!a.length)return null;return a[(R()*a.length)|0]}
 function sfx(n,o={}){
-  if(!sndOn)return;const c=audioInit();
+  if(!sndAllowed())return;const c=audioInit();
   if(c&&c.state==='suspended'){try{c.resume()}catch(e){}}
   const mp=c?pickMp3(n):null;
   if(mp&&c){const s=c.createBufferSource();s.buffer=mp;s.playbackRate.value=1+(R()-.5)*.06;
@@ -232,9 +340,9 @@ function sfx(n,o={}){
 const MUSIC={fileNames:[],byBase:{},cur:null,curName:'',playing:false,vol:.35};
 function musicEl(url){const a=new Audio();a.loop=true;a.preload='auto';a.src=url;a.volume=0;return a}
 function musicEnsure(n){if(MUSIC.byBase[n])return MUSIC.byBase[n];const files=MUSIC.fileNames.filter(f=>baseName(f)===n);if(!files.length)return null;
-  const arr=files.map(f=>musicEl('/PackMusic/'+f));arr.forEach(a=>{try{a.load()}catch(e){}});MUSIC.byBase[n]=arr;return arr}
+  const arr=files.map(f=>musicEl('PackMusic/'+f));arr.forEach(a=>{try{a.load()}catch(e){}});MUSIC.byBase[n]=arr;return arr}
 function musicPlay(n){
-  if(!sndOn||!MUSIC.fileNames.length)return;
+  if(!sndAllowed()||!MUSIC.fileNames.length)return;
   const old=MUSIC.cur,oldName=MUSIC.curName;
   if(oldName===n&&old&&!old.paused){try{old.volume=Math.min(MUSIC.vol,old.volume+.05)}catch(e){}return}
   const arr=musicEnsure(n);if(!arr){return}
@@ -247,18 +355,19 @@ function musicSync(){if(state==='menu')musicPlay('menu');else if(state==='play')
 async function loadMusicPack(){
   try{
     let list=[];
-    if(/^https?:$/.test(location.protocol)){try{const r=await fetch('/api/music',{cache:'no-store'});if(r.ok)list=await r.json()}catch(e){}}
+    if(/^https?:$/.test(location.protocol)&&!CG.on){try{const r=await fetch('api/music',{cache:'no-store'});if(r.ok)list=await r.json()}catch(e){}}
     if(!Array.isArray(list))list=[];
     MUSIC.fileNames=list.filter(f=>AUDIO_EXT.test(f));
     if(!MUSIC.fileNames.length)MUSIC.fileNames=['menu.mp3','battle.mp3','battle2.mp3'];
   }catch(e){MUSIC.fileNames=[]}
 }
 // Позиционный звук: панорама по экрану + затухание с расстоянием от центра камеры.
-function sfxAt(n,x,y,o={}){if(!sndOn)return;const pan=Math.max(-1,Math.min(1,((x-camx)-SW/2)/(SW/2)));const d=Math.hypot(x-(camx+SW/2),y-(camy+SH/2));o=Object.assign({},o);if(o.vol==null)o.vol=1;o.vol*=Math.max(.25,1-d/(SW*1.1));o.pan=pan;sfx(n,o)}
+function sfxAt(n,x,y,o={}){if(!sndAllowed())return;const pan=Math.max(-1,Math.min(1,((x-camx)-SW/2)/(SW/2)));const d=Math.hypot(x-(camx+SW/2),y-(camy+SH/2));o=Object.assign({},o);if(o.vol==null)o.vol=1;o.vol*=Math.max(.25,1-d/(SW*1.1));o.pan=pan;sfx(n,o)}
 function audioKick(){audioResume();loadSfxPack();loadMusicPack().then(()=>{if(state==='menu')musicPlay('menu')})}
 addEventListener('pointerdown',audioKick);addEventListener('keydown',audioKick);
 // ==============================================
 let P,PL=[],walls=[],en=[],bl=[],pt=[],pk=[],fires=[],flames=[],wave=1,score=0,spawnQ=0,spT=0,shake=0,last,rest=0,boss=false,buffs={},lastW=0,zn=[],EID=1,ovl=false,online=false,role=null,fq=[],wq=[],bq=[],snapT=0;
+const TV={pauseMenu:false,adPlaying:false};
 const BOSS_TYPES=new Set([5,9,10,11]);
 const HIVE_MAX_MINIONS=10;
 // Высота дуги снаряда в мире: миномёт — навесная, артиллерист — настильная.
@@ -299,10 +408,9 @@ const TANKS=[
 {id:'crimson',name:'Багровый',cost:400,c1:'#8a2d2d',c2:'#521a1a',perk:'+12% урона',mod:{dmg:1.12}},
 {id:'arctic',name:'Арктический',cost:600,c1:'#cfe3ea',c2:'#87a7b0',perk:'+20 макс. HP',mod:{max:20}}];
 let coins=0,owned=['std'],equip='std',bfC=false;
-try{coins=+localStorage.getItem('tc')||0;owned=JSON.parse(localStorage.getItem('to')||'["std"]');equip=localStorage.getItem('te')||'std'}catch(e){}
-function saveGarage(){try{localStorage.setItem('tc',coins);localStorage.setItem('to',JSON.stringify(owned));localStorage.setItem('te',equip)}catch(e){}}
+function saveGarage(){persistSet('tc',String(coins));persistSet('to',JSON.stringify(owned));persistSet('te',equip)}
 function curTank(){return TANKS.find(x=>x.id===equip)||TANKS[0]}
-function coinLabel(){const e=$('cn');if(e)e.textContent='💰 '+coins+' монет'}
+function coinLabel(){const e=$('cn');if(e)e.textContent='💰 '+coins+(LANG==='en'?' coins':' монет')}
 function drawMenuTank(){const cvv=$('mtank');if(!cvv)return;const gx=cvv.getContext('2d');gx.setTransform(1,0,0,1,0,0);gx.clearRect(0,0,150,90);gx.translate(75,48);gx.rotate(-.25);const eq=curTank();drawTank(gx,26,{x:0,y:0,a:0,t:-.4},eq.c1,eq.c2,1)}
 const EI=[['Пехотный танк','Базовый враг: едет к вам и стреляет.',2,'12','Средняя','#b5473a'],['Шустрик','Быстрый и хрупкий, не даёт передышки.',1,'12','Высокая','#d98a2b'],['Тяжёлый','Медленный, зато очень прочный.',5,'12','Низкая','#7b4e9a'],['Снайпер','Держит дистанцию и метко бьёт быстрыми снарядами.',2,'18','Средняя','#3a8f96'],['Камикадзе','Несётся на вас и взрывается при касании.',1,'25','Очень высокая','#e8e04a'],['Босс','Каждые 5 волн. Стреляет веером из 3 снарядов, за победу — гарантированный бафф.',30,'3×12','Низкая','#c23b6b'],['Смертный танк','Медленно ползёт к вам с C4 на корме. Взрывается при смерти или сближении — бейте издалека!',3,'35 по площади','Низкая','#8a8a8a'],['Миномёт','Обстреливает навесом: на земле появляется круг — выйдите из него. Помимо точного выстрела, кидает 1–2 мины в случайные места рядом с вами.',2,'30 по площади','Низкая','#5a7d3a'],['Щитоносец','Спереди получает на 75% меньше урона. Заходите с фланга или тыла.',4,'12','Средняя','#4a6a9a'],
 ['Улей','БОСС. Почти не стреляет сам — зато постоянно призывает дронов вокруг себя. Разберитесь с ним быстрее.',40,'—','Очень низкая','#c9a227'],
@@ -312,7 +420,9 @@ const EI=[['Пехотный танк','Базовый враг: едет к в�
 ['Огнемётчик','Средний танк с раструбом-огнемётом и баллонами по бокам. Пока вы в зоне — льёт непрерывную струю пламени, обжигая всё в конусе перед собой. Оставляет горящие лужи. Держите дистанцию и убивайте до подхода — в коридоре он смертелен.',6,'~17 / сек в конусе','Средняя','#e85a1a'],
 ['Тесла','Вместо пушки — катушка. Когда загорятся все три лампочки на корме, бьёт зарядом: малый урон и оглушение на 1 сек (не едете и не стреляете). Заряд копится только на прямой видимости — прячьтесь за стены. После оглушения 0,8 сек иммунитета.',7,'8 + оглушение 1 с','Средняя','#3fb4e8']];
 const BF={dmg:['🔥','Двойной урон'],rate:['⚡','Скорострельность'],spd:['💨','Ускорение'],shield:['🛡️','Щит'],multi:['✴️','Тройной залп']};
-function showBanner(a,b){const e=$('bn');e.innerHTML=`<b>${a}</b><i>${b||''}</i>`;e.className='';void e.offsetWidth;e.className='show'}
+const BF_EN={dmg:'Double Damage',rate:'Fire Rate',spd:'Speed Boost',shield:'Shield',multi:'Triple Shot'};
+function bfName(k){return LANG==='en'?(BF_EN[k]||k):(BF[k]?.[1]||k)}
+function showBanner(a,b){a=trText(a);b=trText(b||'');const e=$('bn');e.innerHTML=`<b>${a}</b><i>${b}</i>`;e.className='';void e.offsetWidth;e.className='show'}
 function banner(a,b){showBanner(a,b);if(online&&role==='host'&&bq.length<6)bq.push([a,b||''])}
 function mkP(tk){const eq=TANKS.find(x=>x.id===tk)||TANKS[0],m=eq.mod,p={id:0,name:'',slot:0,tk:eq.id,c1:eq.c1,c2:eq.c2,x:W/2,y:H/2,a:-Math.PI/2,t:-Math.PI/2,hp:100,max:100,cd:0,r:U*.75,xp:0,lvl:1,need:30,pend:0,dmg:1,rate:.33,spd:1,multi:1,pierce:0,vamp:0,armor:0,regen:0,splash:0,luck:0,xpm:1,bs:1,crit:0,mag:0,frost:0,rev:0,fire:false,ch:false,dead:false};
   if(m.spd)p.spd*=m.spd;if(m.dmg)p.dmg*=m.dmg;if(m.armor)p.armor=Math.min(.6,p.armor+m.armor);if(m.max){p.max+=m.max;p.hp+=m.max}return p}
@@ -375,7 +485,7 @@ function summonMinions(b){
   sfx('spawn',{vol:.5,pitch:.8});shake=Math.max(shake,5);
 }
 function fmt(t){t=Math.ceil(t);return (t/60|0)+':'+String(t%60).padStart(2,'0')}
-function giveBuff(){const k=Object.keys(BF)[R()*5|0],t=30+R()*60|0;buffs[k]=(buffs[k]||0)+t;banner(BF[k][0]+' '+BF[k][1],'+'+t+' сек');sfx('buff',{vol:.7,pitch:.9+R()*.2})}
+function giveBuff(){const k=Object.keys(BF)[R()*5|0],t=30+R()*60|0;buffs[k]=(buffs[k]||0)+t;banner(BF[k][0]+' '+bfName(k),'+'+t+' '+(LANG==='en'?'sec':'сек'));sfx('buff',{vol:.7,pitch:.9+R()*.2})}
 function gainXp(p,x){p.xp+=x*p.xpm;while(p.xp>=p.need){p.xp-=p.need;p.lvl++;p.need=Math.round(p.need*1.3+12);p.pend++;sfx('levelup',{vol:.6,pitch:1+Math.min(.4,(p.lvl-1)*.03)});if(p!==P&&online)relay(p.id,{k:'lvl'})}}
 function hitE(e,d,b){if(e.dead)return;const kr=b&&b.o;if(b&&e.k==8&&Math.cos(Math.atan2(b.vy,b.vx)-e.t-Math.PI)>.5)d*=.25;if(e.boss)d*=.85;if(e.k==10&&en.some(o=>o.hiveId===e.id&&!o.dead))d*=.5;e.hp-=d;
   if(e.hp>0)sfxAt(e.boss?'ehitboss':'ehit',e.x,e.y,{vol:.28,pitch:.85+R()*.3});
@@ -391,14 +501,15 @@ function hitE(e,d,b){if(e.dead)return;const kr=b&&b.o;if(b&&e.k==8&&Math.cos(Mat
       if(kr&&kr.vamp)kr.hp=Math.min(kr.max,kr.hp+kr.vamp);
     }
     if(e.k==6)blast(e.x,e.y,U*3.5,35);
+    if(e.boss)cgHappy();
     if(e.k==5||R()<.05+luck)giveBuff();
   }
 }
 function cards(){
   const p=P;p.pend--;st.L=st.R=null;sfx('levelup',{vol:.7});
   if(online){ovl=true;p.ch=true}else state='card';
-  const c=$('cd');c.innerHTML=`<h2>УРОВЕНЬ ${p.lvl}</h2><p>Выбери улучшение</p>`;
-  [...UP].sort(()=>R()-.5).slice(0,3).forEach(u=>{const b=document.createElement('button');b.className='cr';b.innerHTML=`<span>${u[0]}</span><b>${u[1]}</b><i>${u[2]}</i>`;
+  const c=$('cd');c.innerHTML=`<h2>${t('level')} ${p.lvl}</h2><p>${t('levelPick')}</p>`;
+  [...UP].sort(()=>R()-.5).slice(0,3).forEach(u=>{const b=document.createElement('button');b.className='cr';b.innerHTML=`<span>${u[0]}</span><b>${upName(UP.indexOf(u))}</b><i>${upDesc(UP.indexOf(u))}</i>`;
     b.onclick=()=>{u[3](p);if(online&&role==='guest')relay('host',{k:'up',i:UP.indexOf(u)});c.style.display='none';if(online){ovl=false;p.ch=false}else state='play'};c.appendChild(b)});
   c.style.display='flex'}
 const R=()=>Math.random();
@@ -440,11 +551,11 @@ function dirTo(e){
 }
 function start(){
   build();P=mkP(equip);P.name='Вы';PL=[P];
-  en=[];bl=[];pt=[];pk=[];zn=[];fires=[];flames=[];wave=1;score=0;shake=0;spawnQ=4;spT=0;rest=0;boss=false;buffs={};lastW=0;EID=1;ovl=false;online=false;role=null;fq=[];wq=[];bq=[];
-  $('rs').textContent='';$('cd').style.display='none';$('bs').style.display='none';banner('WAVE 1','В БОЙ!');state='play';cam(1);
-  $('ov').style.display='none';$('pm').style.display='none';setPres(1);lobChip();last=performance.now();
+  en=[];bl=[];pt=[];pk=[];zn=[];fires=[];flames=[];wave=1;score=0;shake=0;spawnQ=4;spT=0;rest=0;boss=false;buffs={};lastW=0;EID=1;ovl=false;online=false;role=null;fq=[];wq=[];bq=[];revDeaths=0;RVS.active=false;RVS.resolving=false;$('rv').style.display='none';
+  $('rs').textContent='';$('cd').style.display='none';$('bs').style.display='none';banner(t('wave')+' 1',t('waveStart'));state='play';cam(1);
+  $('ov').style.display='none';$('pm').style.display='none';setPres(1);lobChip();last=performance.now();cgContext();cgGameplay(1);
 }
-function clearWave(){banner('WAVE '+wave,'ЗАЧИЩЕНА!');sfx('wave',{vol:.8});wave++;rest=5;for(const p of PL){if(p.dead){p.dead=false;p.hp=p.max*.5;const al=PL.find(q=>!q.dead&&q!==p);if(al){p.x=al.x+U*2;p.y=al.y}}else p.hp=Math.min(p.max,p.hp+p.max*.25)}}
+function clearWave(){banner(t('wave')+' '+wave,t('waveClear'));sfx('wave',{vol:.8});if(wave>1)requestMidgameAd();wave++;rest=5;for(const p of PL){if(p.dead){p.dead=false;p.hp=p.max*.5;const al=PL.find(q=>!q.dead&&q!==p);if(al){p.x=al.x+U*2;p.y=al.y}}else p.hp=Math.min(p.max,p.hp+p.max*.25)}}
 function spawn(){
   const al=PL.filter(p=>!p.dead);if(!al.length)return;const T=al[R()*al.length|0];const hm=(1+wave*.1)*(1+(PL.length-1)*.35);
   // Дроны улья (k=12) в обычный пул не попадают — их призывает только улей.
@@ -512,7 +623,9 @@ function shoot(o,own,sp,dmg,off=0){const a=o.t+off;
 function boom(x,y,n,c,sp,life){for(let i=0;i<n;i++){const a=R()*6.28,v=R()*sp;pt.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:life*(.5+R()),m:life,c,s:U*(.08+R()*.14)})}}
 function hurtP(p,d){if(p.ch||p.dead)return;d*=(1-p.armor)*(buffs.shield?.4:1);p.hp-=d;if(p===P){shake=8;sfx('playerhit',{vol:Math.min(.9,.35+d/40),pitch:.95+R()*.12});try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}}else sfxAt('playerhit',p.x,p.y,{vol:.3})
   if(p.hp<=0){if(p.rev>0){p.rev--;p.hp=p.max*.5;boom(p.x,p.y,40,'#7dff8a',U*8,.8);if(p===P){banner('ВТОРОЕ ДЫХАНИЕ','');sfx('revive',{vol:.8})}}
-  else{p.hp=0;p.dead=true;boom(p.x,p.y,50,'#ff8a3a',U*9,.9);fx(p.x,p.y,4);if(p===P||PL.every(q=>q.dead))sfx(p===P?'explode':'boom',{vol:.8,pitch:.8});if(PL.every(q=>q.dead))over();else if(p===P)banner('ПОДБИТ','Возрождение в следующей волне')}}}
+  else{p.hp=0;p.dead=true;boom(p.x,p.y,50,'#ff8a3a',U*9,.9);fx(p.x,p.y,4);if(p===P||PL.every(q=>q.dead))sfx(p===P?'explode':'boom',{vol:.8,pitch:.8});
+    if(p===P)onLocalDeath();
+    else if(online&&role==='host'&&PL.every(q=>q.dead))over()}}}
 // ---------- Тесла: электричество ----------
 // Рисует ломаную молнию (мягкое свечение + яркая жила). Alpha берётся из текущего globalAlpha.
 function zap(c,x1,y1,x2,y2,seg,jit,col,lw){
@@ -540,17 +653,190 @@ function stunP(p,t){
   if(p===P){P.fire=false;shake=Math.max(shake,6);sfx('stun',{vol:.6});try{navigator.vibrate&&navigator.vibrate([30,30,50])}catch(e){}}
   else if(online&&role==='host')relay(p.id,{k:'stun',t});
 }
-function over(){
-  state='over';if(online&&role==='host')relay('all',{k:'over',sc:score|0,w:wave});setPres(0);
+// ================= ЛОКАЛИЗАЦИЯ RU/EN =================
+let LANG='en';
+const STR={
+  ru:{
+    title:'СТАЛЬНОЙ<br>РУБЕЖ',controls:'Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».',wave:'ВОЛНА',level:'УР.',sound:'ЗВУК',soundOn:'🔊 ЗВУК',soundOff:'🔇 ЗВУК',battle:'В БОЙ',again:'ЕЩЁ РАЗ',enemies:'ВРАГИ',garage:'ГАРАЖ',admin:'АДМИН',online:'Онлайн',offline:'⚪ Онлайн недоступен',pause:'ПАУЗА',resume:'ВЕРНУТЬСЯ',openOnline:'ОТКРЫТЬ ОНЛАЙН',closeOnline:'ЗАКРЫТЬ ОНЛАЙН',menu:'МЕНЮ',mode:'РЕЖИМ ИГРЫ',waves:'ВОЛНЫ',back:'НАЗАД',join:'ПРИСОЕДИНИТЬСЯ',createLobby:'СОЗДАТЬ ЛОББИ',create:'СОЗДАТЬ',start:'НАЧАТЬ',leave:'ВЫЙТИ',lobby:'ЛОББИ',players:'Игроков',minimum:'минимум',host:'хост',player:'игрок',you:'вы',waitingHost:'ждём, пока хост начнёт игру',room:'Код',downed:'ПОДБИТ',watchAd:'🎬 СМОТРЕТЬ РЕКЛАМУ',continueFor:'ПРОДОЛЖИТЬ ЗА',finish:'ЗАВЕРШИТЬ',reviveText:'Ты подбит, но можешь вернуться в бой.',reviveReward:'Посмотри рекламу до конца — вернёшься в бой с полным HP и продолжишь текущую волну.',adLoading:'Загрузка рекламы…',revCoins:'Или продолжи за монеты.',score:'Счёт',record:'Рекорд',waveWord:'Волна',buy:'КУПИТЬ',owned:'КУПЛЕН',equipped:'ЭКИПИРОВАН',select:'ВЫБРАТЬ',notEnough:'МАЛО МОНЕТ',coinsFor:'получай их за бои (счёт ÷ 40)',healthGrows:'Здоровье растёт на 10% с каждой волной.',server:'Сервер (xxx.onrender.com)',name:'Ваше имя',code:'Код',password:'Пароль (если есть)',passwordOptional:'Пароль для онлайна (необязательно)',newLobby:'Название лобби',noLobbies:'Лобби пока нет — создай своё.',connecting:'Подключение…',onlinePlayers:'Онлайн на сервере',disconnected:'Связь с сервером потеряна',notSet:'Адрес сервера не задан. Открой: МЕНЮ → В БОЙ → ОНЛАЙН и укажи его.',rotate:'📱<br>Поверни телефон<br>горизонтально',repair:'Ремкомплекты','reviveAd':'СПАСЕНИЕ ЗА РЕКЛАМУ','revive':'ВОЗВРАЩЕНИЕ В БОЙ',waveStart:'В БОЙ!',waveClear:'ЗАЧИЩЕНА!',wait:'Загрузка…',levelPick:'Выбери улучшение',respawn:'Возрождение в следующей волне',secondWind:'ВТОРОЕ ДЫХАНИЕ',stunned:'Оглушение',downedShort:'ПОДБИТ'},
+  en:{
+    title:'STEEL<br>FRONTIER',controls:'Left stick — move.<br>Right stick — aim and fire.<br>Pick up repair kits “+”.',wave:'WAVE',level:'LV.',sound:'SOUND',soundOn:'🔊 SOUND',soundOff:'🔇 SOUND',battle:'BATTLE',again:'PLAY AGAIN',enemies:'ENEMIES',garage:'GARAGE',admin:'ADMIN',online:'Online',offline:'⚪ Online unavailable',pause:'PAUSED',resume:'RESUME',openOnline:'OPEN ONLINE',closeOnline:'CLOSE ONLINE',menu:'MENU',mode:'GAME MODE',waves:'WAVES',back:'BACK',join:'JOIN',createLobby:'CREATE LOBBY',create:'CREATE',start:'START',leave:'LEAVE',lobby:'LOBBY',players:'Players',minimum:'minimum',host:'host',player:'player',you:'you',waitingHost:'waiting for the host to start',room:'Code',downed:'DOWNED',watchAd:'🎬 WATCH AD',continueFor:'CONTINUE FOR',finish:'FINISH',reviveText:'You are down, but you can return to battle.',reviveReward:'Watch the ad to the end — you will return to battle with full HP and keep this wave.',adLoading:'Loading ad…',revCoins:'Or continue with coins.',score:'Score',record:'Best',waveWord:'Wave',buy:'BUY',owned:'OWNED',equipped:'EQUIPPED',select:'SELECT',notEnough:'NOT ENOUGH COINS',coinsFor:'earn them from battles (score ÷ 40)',healthGrows:'Enemy health grows by 10% each wave.',server:'Server (xxx.onrender.com)',name:'Your name',code:'Code',password:'Password (if any)',passwordOptional:'Online password (optional)',newLobby:'Lobby name',noLobbies:'No lobbies yet — create one.',connecting:'Connecting…',onlinePlayers:'Players online',disconnected:'Connection to server lost',notSet:'Server address is not set. Open: BATTLE → ONLINE and enter it.',rotate:'📱<br>Rotate your phone<br>to landscape',repair:'Repair kits',reviveAd:'REVIVE FOR AD',revive:'BACK TO BATTLE',waveStart:'GO!',waveClear:'CLEARED!',wait:'Loading…',levelPick:'Choose an upgrade',respawn:'Respawn on the next wave',secondWind:'SECOND WIND',stunned:'Stunned',downedShort:'DOWNED'}
+};
+const UP_EN=[
+  'Afterburner','Reinforced Armor','Repair','Extra Barrel','Armor Piercing','Vampirism','Shield','Explosives','Regeneration','Luck','Experienced','Fast Shells','Critical Hit','Magnet','Freeze','Second Wind','Heavy Cannon'
+];
+const UP_DESC_EN=['+12% speed','+30 max HP and healing','Heals 60 HP','+1 spread shell','Shells pierce +1 enemy','+3 HP per kill','−10% damage taken','Area damage on impact','+1.5 HP per second','+3% buff chance','+25% XP gain','+30% projectile speed','+15% double-damage chance','Repair kits attract from farther away','Hits slow enemies','Revive with 50% HP','+80% damage, −33% fire rate'];
+const TANK_EN={std:['Standard','No bonuses'],desert:['Desert','+6% speed'],urban:['Urban','+10% armor'],crimson:['Crimson','+12% damage'],arctic:['Arctic','+20 max HP']};
+const EI_EN=[
+  ['Infantry Tank','Basic enemy: drives toward you and shoots.'],['Sprinter','Fast and fragile. Never gives you a break.'],['Heavy','Slow but highly durable.'],['Sniper','Keeps distance and fires fast, accurate shots.'],['Kamikaze','Charges you and explodes on contact.'],['Boss','Every 5 waves. Fires a 3-shot spread and grants a buff when defeated.'],['Death Tank','Slow C4 carrier. Explodes on death or close approach — keep your distance.'],['Mortar','Indirect fire: warning circles appear on the ground. Also throws 1–2 mines into nearby random positions.'],['Shieldbearer','Takes 75% less damage from the front. Flank it.'],['Hive','BOSS. Summons drones and now fires its own twin burst. Destroy the swarm quickly.'],['Summoner','BOSS. Keeps distance, fires a spread and periodically summons 3 tanks. While they live, its barrier reduces damage.'],['Artillery','BOSS. Predictive artillery with seven patterns, delayed zones and multi-step barrages.'],['Hive Drone','Flying minion. Fast and agile, fires repeated short shots. The Hive cannot spawn a new swarm until all drones die.'],['Flamethrower','Mid-range tank with a flamethrower cone and burning puddles.'],['Tesla','Charges three lamps, then fires a stun bolt. Break line of sight to stop the charge.']
+];
+function t(k){return (STR[LANG]&&STR[LANG][k])||STR.en[k]||k}
+function upName(i){return LANG==='en'?(UP_EN[i]||UP[i]?.[1]||''):(UP[i]?.[1]||'')}
+function upDesc(i){return LANG==='en'?(UP_DESC_EN[i]||UP[i]?.[2]||''):(UP[i]?.[2]||'')}
+function tankName(id){return LANG==='en'?(TANK_EN[id]?.[0]||id):(TANKS.find(x=>x.id===id)?.name||id)}
+function tankPerk(id){return LANG==='en'?(TANK_EN[id]?.[1]||''):(TANKS.find(x=>x.id===id)?.perk||'')}
+function enemyName(i){return LANG==='en'?(EI_EN[i]?.[0]||EI[i][0]):EI[i][0]}
+function enemyDesc(i){return LANG==='en'?(EI_EN[i]?.[1]||EI[i][1]):EI[i][1]}
+function trText(v){
+  const exact={
+    'СПАСЕНИЕ ЗА РЕКЛАМУ':t('reviveAd'),'ВОЗВРАЩЕНИЕ В БОЙ':t('revive'),'ВТОРОЕ ДЫХАНИЕ':t('secondWind'),'ПОДБИТ':t('downedShort'),'ПОДБИТЫ':t('downedShort'),
+    'Возрождение в следующей волне':t('respawn'),'В БОЙ!':t('waveStart'),'ЗАЧИЩЕНА!':t('waveClear'),'ЗАЧИЩЕНА':'CLEARED!','Онлайн':t('online'),'Волна':'Wave','ур.':'LV.','Отдых':'Rest','Игроков':'Players','игроков':'players','минимум':'minimum',
+    'Босс':'Boss','БОСС':'BOSS','Очень низкая':'Very low','Низкая':'Low','Средняя':'Medium','Высокая':'High','Очень высокая':'Very high'
+  };return exact[v]||v}
+function applyLocale(){
+  document.documentElement.lang=LANG;
+  const set=(id,key)=>{const e=$(id);if(e)e.innerHTML=t(key)};
+  document.title=LANG==='en'?'Steel Frontier':'Стальной рубеж';
+  set('t','title');set('m','controls');$('go').textContent=t('battle');$('bb').textContent=t('enemies');$('gg').textContent=t('garage');$('adm').textContent=t('admin');$('snd').textContent=sndOn?t('soundOn'):t('soundOff');$('lang').textContent=LANG.toUpperCase();
+  $('lv').textContent=t('level')+' '+(P?.lvl||1);$('wv').textContent=t('wave')+' '+(wave||1);
+  $('pm').querySelector('h2').textContent=t('pause');$('pr').textContent=t('resume');$('pmo').textContent=t('openOnline');$('pmc').textContent=t('closeOnline');$('pmn').textContent=t('menu');$('pmpw').placeholder=t('passwordOptional');
+  $('rvh').textContent=t('downed');$('rvad').textContent=t('watchAd');$('rvend').textContent=t('finish');$('rvcoin').childNodes[0].textContent=t('continueFor')+' ';
+  const rot=$('rot');if(rot)rot.innerHTML=t('rotate');
+  coinLabel();updateLocaleViews();
+}
+function updateLocaleViews(){if($('bs').style.display!=='none'&&net.scr) { if(net.scr==='list') renderList(); else if(net.scr==='room') roomScreen(); } if(state==='pause'||ovl) pmRefresh?.();}
+function setLang(l){LANG=l==='ru'?'ru':'en';persistSet('lang',LANG);applyLocale()}
+// ================= CrazyGames midgame ad =================
+function requestMidgameAd(){
+  if(!CG.on||!CG.ready||!CG.sdk?.ad||CG.adblock||TV.adPlaying)return;
+  TV.adPlaying=true;cgGameplay(0);
+  try{
+    CG.sdk.ad.requestAd('midgame',{
+      adStarted:()=>{musicStop()},
+      adFinished:()=>{TV.adPlaying=false;if(state==='play')cgGameplay(1)},
+      adError:()=>{TV.adPlaying=false;if(state==='play')cgGameplay(1)}
+    });
+  }catch(e){TV.adPlaying=false;if(state==='play')cgGameplay(1)}
+}
+
+// ================= Второй шанс (rewarded-реклама / монеты) =================
+const REVIVE_COIN_COST=300;
+const RVS={active:false,timer:null,t:0,RAF:0,resolving:false,offered:false};
+let revDeaths=0; // смертей за забег (для троттлинга рекламы: не каждый раз)
+function revCooldown(){return revDeaths%2===0} // предлагаем на 1-й, 3-й, 5-й... смерти
+function reviveAllowed(){return !online||PL.length===1||(role==='guest')||(role==='host')}
+function setRevRing(frac){const num=Math.max(0,Math.ceil(RVS.t));$('rvn').textContent=num;const C=276.46;$('rvf').setAttribute('stroke-dashoffset',String(C*(1-frac)))}
+function startRevTimer(sec){
+  RVS.t=sec;setRevRing(1);
+  const step=()=>{if(!RVS.active)return;RVS.t-=.1;if(RVS.t<=0){RVS.t=0;setRevRing(0);doEnd();return}setRevRing(RVS.t/sec);RVS.timer=setTimeout(step,100)};
+  RVS.timer=setTimeout(step,100);
+}
+function stopRevTimer(){if(RVS.timer){clearTimeout(RVS.timer);RVS.timer=null}}
+function offerRevive(){
+  if(RVS.active)return;RVS.active=true;RVS.resolving=false;
+  stopRevTimer();
+  ovl=true;TV.pauseMenu=true;
+  const canCoin=coins>=REVIVE_COIN_COST;
+  const sd=$('rv');$('rvc').textContent=REVIVE_COIN_COST;
+  $('rvs').textContent=t('reviveText');
+  $('rvad').style.display=(sdkEnvOn()&&!CG.mute)?'':'none';
+  $('rvcoin').style.display=canCoin?'':'none';
+  $('rvr').textContent=(sdkEnvOn()&&!CG.mute)?t('rev_reward'):(canCoin?t('rev_coins_note'):'');
+  $('rve').textContent='';$('rvh2').textContent='';
+  $('rvad').disabled=false;$('rvcoin').disabled=false;$('rvend').disabled=false;
+  sd.style.display='flex';
+  startRevTimer(30);
+  if(online&&role==='host')relay('all',{k:'reviveOff',by:P.id});
+}
+function hideRevive(){stopRevTimer();RVS.active=false;$('rv').style.display='none'}
+function doRevive(gotAd){
+  if(RVS.resolving)return;RVS.resolving=true;hideRevive();ovl=false;TV.pauseMenu=false;
+  if(gotAd)cgHappy();
+  if(online){
+    if(role==='host')applyRevive(P.id,gotAd);
+    else relay('host',{k:'revive',ad:gotAd?1:0});
+    state='play';last=performance.now();cgGameplay(1);
+    return;
+  }
+  const dead=PL.filter(p=>p.dead);
+  dead.forEach((p,i)=>{
+    p.dead=false;p.hp=p.max;p.stun=0;p.stunImm=0;p.cd=0;
+    const bx=P.x,by=P.y;
+    p.x=bx+(i?U*1.5:0);p.y=by+(i?U*.8:0);
+    if(hitsWall(p.x,p.y,p.r)){p.x=bx;p.y=by}
+  });
+  state='play';ovl=false;RVS.active=false;RVS.resolving=false;setPres(1);cam(1);last=performance.now();cgGameplay(1);
+  banner(gotAd?t('reviveAd'):t('revive'),t('waveWord')+' '+wave);
+  sfx('revive',{vol:.9});
+}
+function applyRevive(id,ad){
+  const p=PL.find(q=>q.id===id);
+  if(!p)return;
+  p.dead=false;p.hp=p.max;p.stun=0;p.stunImm=0;p.cd=0;
+  const al=PL.find(q=>!q.dead&&q!==p)||PL[0];
+  if(al&&al!==p){p.x=al.x+U*1.5;p.y=al.y}
+  sfx('revive',{vol:.8});
+  if(id===P.id){ovl=false;TV.pauseMenu=false;RVS.active=false;RVS.resolving=false;state='play';last=performance.now();setPres(1);cam(1);cgGameplay(1);banner(t('revive'),t('waveWord')+' '+wave)}
+  relay('all',{k:'revived',id});
+}
+function doEnd(){
+  if(RVS.resolving)return;RVS.resolving=true;hideRevive();
+  ovl=false;TV.pauseMenu=false;
+  if(online&&role==='guest'){state='over';stopRevTimer();relay('host',{k:'endReq'});return}
+  over(true);
+}
+function requestReviveAd(){
+  if(!RVS.active||RVS.resolving)return;
+  if(!sdkEnvOn()){return}
+  stopRevTimer();
+  $('rvad').disabled=true;$('rvcoin').disabled=true;$('rvend').disabled=true;
+  $('rva').style.display='block';
+  $('rvh2').textContent=t('ad_loading');
+  cgGameplay(0);
+  try{
+    CG.sdk.ad.requestAd('rewarded',{
+      adStarted:()=>{musicStop();},
+      adFinished:()=>{enableRevButtons();doRevive(true);},
+      adError:(e)=>{enableRevButtons();onAdError(e)}
+    });
+  }catch(e){enableRevButtons();onAdError(e)}
+}
+function enableRevButtons(){$('rvad').disabled=false;$('rvcoin').disabled=false;$('rvend').disabled=false;$('rva').style.display='none';$('rvh2').textContent=''}
+function onAdError(e){
+  const code=(e&&e.code)||'';
+  const msg=LANG==='en'?(code==='adblock'?'⚠ Ad blocked':code==='unfilled'?'⚠ No ad available right now':code==='adsDisabledBasicLaunch'?'⚠ Ads are disabled in Basic Launch':'⚠ Could not show ad'):(code==='adblock'?'⚠ Реклама заблокирована (adblock)':code==='unfilled'?'⚠ Нет доступной рекламы, попробуйте позже':code==='adsDisabledBasicLaunch'?'⚠ Реклама временно недоступна':'⚠ Не удалось показать рекламу');
+  $('rve').textContent=msg;
+  if(RVS.active&&RVS.t>0)startRevTimer(Math.max(1,RVS.t));
+}
+function reviveByCoins(){
+  if(!RVS.active||RVS.resolving)return;
+  if(coins<REVIVE_COIN_COST){return}
+  coins-=REVIVE_COIN_COST;saveGarage();coinLabel();
+  doRevive(false);
+}
+function sdkEnvOn(){return CG.on}
+$('rvad').onclick=()=>{if(RVS.active)requestReviveAd()};
+$('rvcoin').onclick=()=>{if(RVS.active)reviveByCoins()};
+$('rvend').onclick=()=>{if(RVS.active)doEnd()};
+// Вызывается, когда погиб ЛОКАЛЬНЫЙ игрок (сингл или кооп).
+function onLocalDeath(){
+  revDeaths++;
+  const allDead=PL.every(q=>q.dead);
+  const canRev=sdkEnvOn()||coins>=REVIVE_COIN_COST;
+  if(canRev&&!revCooldown()&&!RVS.active){offerRevive();return}
+  if(allDead)over();
+  else if(!RVS.active)banner(t('downedShort'),t('respawn'));
+}
+// Чистое завершение забега. force=true — без предложения рекламы (уже отказывались).
+function over(force){
+  state='over';RVS.active=false;
+  stopRevTimer();$('rv').style.display='none';
+  if(online){if(role==='host')relay('all',{k:'over',sc:score|0,w:wave});else relay('host',{k:'endReq'})}
+  setPres(0);
   const sc=score,w=wave;netLeave();online=false;role=null;ovl=false;
   setTimeout(()=>endRun(sc,w),900);
 }
 function endRun(sc,w){
   sfx('gameover',{vol:.8});
-  if(sc>best){best=sc;try{localStorage.setItem('tb',best)}catch(e){}}
+  if(sc>best){best=sc;persistSet('tb',String(best))}
   const earn=Math.max(1,Math.round(sc/40));coins+=earn;saveGarage();coinLabel();
-  $('cd').style.display='none';$('pm').style.display='none';
-  $('t').innerHTML='ПОДБИТ';$('m').innerHTML=`Счёт: ${sc}<br>Волна: ${w}<br>+${earn} 💰<br>Рекорд: ${best}`;$('cn').style.display='none';$('go').textContent='ЕЩЁ РАЗ';$('ov').style.display='flex';drawMenuTank();
+  $('cd').style.display='none';$('pm').style.display='none';$('rv').style.display='none';
+  $('t').innerHTML=t('downed');$('m').innerHTML=`${t('score')}: ${sc}<br>${t('waveWord')}: ${w}<br>+${earn} 💰<br>${t('record')}: ${best}`;$('cn').style.display='none';$('go').textContent=t('again');$('ov').style.display='flex';drawMenuTank();
+}
+// Кнопка «В БОЙ / ЕЩЁ РАЗ»: если сейчас экран итогов — сразу запускаем новый забег.
+function goPressed(){
+  try{audioKick()}catch(e){}
+  if(state==='menu'&&$('ov').style.display==='flex'&&($('t').textContent===t('downed')||$('t').textContent==='ПОДБИТ')){start();return}
+  modeScreen();
 }
 function ctrl(dt){
   const sp=P.spd*(buffs.spd?1.4:1);
@@ -575,7 +861,7 @@ function update(dt){
       if(p!==P){p.stun=Math.max(0,(p.stun||0)-dt);p.stunImm=Math.max(0,(p.stunImm||0)-dt)}
       if(p.fire&&p.cd<=0&&!p.ch&&!(p.stun>0)){const n=p.multi+(buffs.multi?2:0);for(let i=0;i<n;i++)shoot(p,1,U*17*p.bs,p.dmg*(buffs.dmg?2:1),(i-(n-1)/2)*.16);p.cd=p.rate/(buffs.rate?1.6:1);if(p===P)shake=2}
       p.cd-=dt;p.hp=Math.min(p.max,p.hp+p.regen*dt)}
-    if(rest>0){rest-=dt;if(rest<=0){spawnQ=Math.round((3+wave*2)*(1+(PL.length-1)*.6));boss=wave%5==0;banner('WAVE '+wave,boss?'⚠ БОСС! ⚠':'В БОЙ!');if(boss)sfx('gameover',{vol:.5,pitch:.55});else sfx('wave',{vol:.5})}}
+    if(rest>0){rest-=dt;if(rest<=0){spawnQ=Math.round((3+wave*2)*(1+(PL.length-1)*.6));boss=wave%5==0;banner(t('wave')+' '+wave,boss?'⚠ '+(LANG==='en'?'BOSS!':'БОСС!')+' ⚠':t('waveStart'));if(boss)sfx('gameover',{vol:.5,pitch:.55});else sfx('wave',{vol:.5})}}
     else{for(const k in buffs){buffs[k]-=dt;if(buffs[k]<=0)delete buffs[k]}spT-=dt;if(spawnQ>0&&spT<=0&&en.length<Math.min(10,5+wave)+(PL.length-1)*3){spawn();spawnQ--;spT=1.1}}
     if(spawnQ<=0&&!en.length&&rest<=0)clearWave();
   }
@@ -801,10 +1087,10 @@ function update(dt){
   if(P.pend>0&&!ovl&&state==='play'&&!P.dead)cards();
 }
 function hud(){
-  $('hpf').style.width=Math.max(0,P.hp)/P.max*100+'%';$('hpf').style.background=P.hp<P.max*.3?'var(--bad)':'var(--acc)';$('xpf').style.width=P.xp/P.need*100+'%';$('lv').textContent='УР. '+P.lvl;
-  $('bfl').innerHTML=Object.keys(buffs).map(k=>`<span class="${rest>0?'fr':''}">${BF[k][0]} ${BF[k][1]} ${fmt(buffs[k])}${rest>0?' ❄':''}</span>`).join('');
-  $('rs').textContent=rest>0?'Отдых '+Math.ceil(rest):'';
-  $('wv').textContent='WAVE '+wave;if(lastW!==wave){lastW=wave;$('wv').classList.remove('bp');void $('wv').offsetWidth;$('wv').classList.add('bp')}$('sc').textContent=score|0}
+  $('hpf').style.width=Math.max(0,P.hp)/P.max*100+'%';$('hpf').style.background=P.hp<P.max*.3?'var(--bad)':'var(--acc)';$('xpf').style.width=P.xp/P.need*100+'%';$('lv').textContent=t('level')+' '+P.lvl;
+  $('bfl').innerHTML=Object.keys(buffs).map(k=>`<span class="${rest>0?'fr':''}">${BF[k][0]} ${bfName(k)} ${fmt(buffs[k])}${rest>0?' ❄':''}</span>`).join('');
+  $('rs').textContent=rest>0?(LANG==='en'?'Rest ':'Отдых ')+Math.ceil(rest):'';
+  $('wv').textContent=t('wave')+' '+wave;if(lastW!==wave){lastW=wave;$('wv').classList.remove('bp');void $('wv').offsetWidth;$('wv').classList.add('bp')}$('sc').textContent=score|0}
 function guestUpdate(dt){
   ctrl(dt);cam(Math.min(1,dt*6));
   const k=Math.min(1,dt*14);
@@ -1218,7 +1504,7 @@ function draw(){
 }
 function loop(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
-  if(state!=='menu'){if(innerWidth>innerHeight){if(role==='guest')guestUpdate(dt);else if(state!=='card'&&state!=='pause')update(dt)}draw()}
+  if(state!=='menu'){if(!TV.adPlaying&&innerWidth>innerHeight){if(role==='guest')guestUpdate(dt);else if(state!=='card'&&state!=='pause')update(dt)}draw()}
   musicSync();
   requestAnimationFrame(loop);
 }
@@ -1227,25 +1513,26 @@ function inFS(){return document.fullscreenElement||document.webkitFullscreenElem
 function goFS(){if(inFS())return;const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen||d.mozRequestFullScreen||d.msRequestFullscreen;if(!f)return;
   const lock=()=>{try{const o=screen.orientation&&screen.orientation.lock('landscape');o&&o.catch&&o.catch(()=>{})}catch(e){}};
   try{const p=f.call(d,{navigationUI:'hide'});if(p&&p.then)p.then(lock).catch(()=>{});else lock()}catch(e){}}
-$('go').onclick=()=>{fsTry=0;goFS();modeScreen()};
+$('go').onclick=async()=>{if(!saveReady)await saveReadyPromise;fsTry=0;if(!CG.on)goFS();goPressed()};
 function enemyScreen(){
-  $('bs').innerHTML='<h2>ВРАГИ</h2><p>Здоровье растёт на 10% с каждой волной.</p><div class="gr">'+EI.map((e,i)=>`<div class="en"><canvas class="ec" width="80" height="80" data-k="${i}"></canvas><div><b>${e[0]}</b><em>❤ ${e[2]} · 💥 ${e[3]} · 👟 ${e[4]} · волна ${UN[i]}</em><i>${e[1]}</i></div></div>`).join('')+'</div><button id="bk">НАЗАД</button>';
+  $('bs').innerHTML='<h2>'+t('enemies')+'</h2><p>'+t('healthGrows')+'</p><div class="gr">'+EI.map((e,i)=>`<div class="en"><canvas class="ec" width="80" height="80" data-k="${i}"></canvas><div><b>${enemyName(i)}</b><em>❤ ${e[2]} · 💥 ${e[3]} · 👟 ${e[4]} · ${t('waveWord').toLowerCase()} ${UN[i]}</em><i>${enemyDesc(i)}</i></div></div>`).join('')+'</div><button id="bk">'+t('back')+'</button>';
   $('bs').style.display='block';
   $('bs').querySelectorAll('.ec').forEach(cv=>{const i=+cv.dataset.k,gx=cv.getContext('2d');gx.translate(40,44);drawTank(gx,15,{x:0,y:0,a:0,t:-.6,k:i},TCOL[i][0],TCOL[i][1],1)});
   $('bk').onclick=()=>$('bs').style.display='none';
 }
 function garageScreen(){
-  $('bs').innerHTML=`<h2>ГАРАЖ</h2><p>💰 ${coins} монет — получай их за бои (счёт ÷ 40)</p><div class="gr">`+TANKS.map(t=>{
+  $('bs').innerHTML=`<h2>${t('garage')}</h2><p>💰 ${coins}${LANG==='en'?' coins':' монет'} — ${t('coinsFor')}</p><div class="gr">`+TANKS.map(t=>{
     const isOwn=owned.includes(t.id),isEq=equip===t.id;
-    return `<div class="en"><canvas class="ec" data-c1="${t.c1}" data-c2="${t.c2}" width="80" height="80"></canvas><div><b>${t.name}</b><em>${t.perk}</em><i>${isEq?'Экипирован':isOwn?'Куплен':t.cost+' 💰'}</i><br><button data-id="${t.id}" class="gb">${isEq?'ЭКИПИРОВАН':isOwn?'ВЫБРАТЬ':'КУПИТЬ'}</button></div></div>`;
-  }).join('')+'</div><button id="bk">НАЗАД</button>';
+    const status=isEq?t('equipped'):isOwn?t('owned'):t.cost+' 💰'; const action=isEq?t('equipped'):isOwn?t('select'):t('buy');
+    return `<div class="en"><canvas class="ec" data-c1="${t.c1}" data-c2="${t.c2}" width="80" height="80"></canvas><div><b>${tankName(t.id)}</b><em>${tankPerk(t.id)}</em><i>${status}</i><br><button data-id="${t.id}" class="gb">${action}</button></div></div>`;
+  }).join('')+'</div><button id="bk">'+t('back')+'</button>';
   $('bs').style.display='block';
   $('bs').querySelectorAll('.ec').forEach(cv=>{const gx=cv.getContext('2d');gx.translate(40,44);drawTank(gx,15,{x:0,y:0,a:0,t:-.6},cv.dataset.c1,cv.dataset.c2,1)});
   $('bs').querySelectorAll('.gb').forEach(b=>{b.onclick=()=>{
     const t=TANKS.find(x=>x.id===b.dataset.id);
     if(owned.includes(t.id)){equip=t.id}
     else if(coins>=t.cost){coins-=t.cost;owned.push(t.id);equip=t.id}
-    else{b.textContent='МАЛО МОНЕТ';return}
+    else{b.textContent=t('notEnough');return}
     saveGarage();coinLabel();garageScreen();drawMenuTank();
   }});
   $('bk').onclick=()=>$('bs').style.display='none';
@@ -1254,26 +1541,29 @@ $('bb').onclick=()=>{sfx('click');enemyScreen()};
 $('gg').onclick=()=>{sfx('click');garageScreen()};
 $('bft').onclick=()=>{bfC=!bfC;$('bft').classList.toggle('cl',bfC);$('bfl').classList.toggle('cl',bfC)};
 coinLabel();
-function sndLabel(){const b=$('snd');if(b)b.textContent=sndOn?'🔊 ЗВУК':'🔇 ЗВУК'}
-$('snd').onclick=()=>{sndOn=!sndOn;try{localStorage.setItem('snd',sndOn?'1':'0')}catch(e){}sndLabel();audioResume();if(sndOn)sfx('click',{vol:.7});musicSync();if(!sndOn)musicStop()};
+function sndLabel(){const b=$('snd');if(b)b.textContent=sndOn?t('soundOn'):t('soundOff')}
+$('snd').onclick=()=>{sndOn=!sndOn;persistSet('snd',sndOn?'1':'0');sndLabel();audioResume();if(sndOn)sfx('click',{vol:.7});musicSync();if(!sndOn)musicStop()};
 sndLabel();
 $('ver').textContent='Версия '+GAME_VERSION;
-$('adm').onclick=()=>{location.href='/admin'};
+$('adm').onclick=()=>{location.href='admin'};
+$('lang').onclick=()=>{sfx('click');setLang(LANG==='ru'?'en':'ru')};
+$('lang').textContent=LANG.toUpperCase();
+cgInit().catch(()=>{saveReady=true;if(saveReadyResolve)saveReadyResolve();applyLocale();applyGate()});
 function pmRefresh(){
   const L=net.lobby,host=!!(L&&L.host===net.id&&!L.started&&!online);
-  $('pmi').textContent=online?('Онлайн: код '+(L?L.code:'')+' · игроков '+PL.length+'. В онлайне мир не встаёт на паузу.'):host?('Код: '+L.code+' · Игроков: '+L.players.length+'/'+L.max+' (нужно минимум '+L.min+')'):'';
+  $('pmi').textContent=online?(t('online')+': '+t('room')+' '+(L?L.code:'')+' · '+t('players').toLowerCase()+' '+PL.length+'. '+(LANG==='en'?'The world does not pause in online mode.':'В онлайне мир не встаёт на паузу.')):host?(t('room')+': '+L.code+' · '+t('players')+': '+L.players.length+'/'+L.max+' ('+t('minimum')+' '+L.min+')'):'';
   $('pmpw').style.display=$('pmo').style.display=(!online&&!host)?'':'none';
   $('pms').style.display=$('pmc').style.display=host?'':'none';
   $('pms').disabled=host&&L.players.length<L.min;$('pms').style.opacity=$('pms').disabled?.5:1}
-function pauseGame(){if(state!=='play'||ovl)return;st.L=st.R=null;if(online){ovl=true;P.ch=true}else state='pause';pmRefresh();$('pm').style.display='flex'}
-function resumeGame(){if(!(state==='pause'||(online&&ovl)))return;if(net.lobby&&!online){netLeave();net.fromPause=false}if(online){ovl=false;P.ch=false}else{state='play';last=performance.now()}$('pm').style.display='none'}
+function pauseGame(){if(state!=='play'||ovl)return;st.L=st.R=null;if(online){ovl=true;P.ch=true}else state='pause';pmRefresh();$('pm').style.display='flex';cgGameplay(0)}
+function resumeGame(){if(!(state==='pause'||(online&&ovl)))return;if(net.lobby&&!online){netLeave();net.fromPause=false}if(online){ovl=false;P.ch=false}else{state='play';last=performance.now()}$('pm').style.display='none';cgGameplay(1)}
 function toMenu(){
   if(!(state==='pause'||(online&&ovl)))return;
-  const sc=score;if(sc>best){best=sc;try{localStorage.setItem('tb',best)}catch(e){}}
+  const sc=score;if(sc>best){best=sc;persistSet('tb',String(best))}
   const earn=Math.max(1,Math.round(sc/40));coins+=earn;saveGarage();
   if(net.lobby)netLeave();net.fromPause=false;
-  online=false;role=null;ovl=false;P.ch=false;state='menu';setPres(0);$('pm').style.display='none';$('cd').style.display='none';
-  $('t').innerHTML='СТАЛЬНОЙ<br>РУБЕЖ';$('m').innerHTML=`Счёт: ${sc} · Волна: ${wave}<br>+${earn} 💰 · Рекорд: ${best}`;
+  online=false;role=null;ovl=false;P.ch=false;state='menu';setPres(0);$('pm').style.display='none';$('cd').style.display='none';cgGameplay(0);
+  $('t').innerHTML=t('title');$('m').innerHTML=`${t('score')}: ${sc} · ${t('waveWord')}: ${wave}<br>+${earn} 💰 · ${t('record')}: ${best}`;
   $('cn').style.display='';coinLabel();$('go').textContent='В БОЙ';$('ov').style.display='flex';drawMenuTank();
 }
 $('pb').onclick=pauseGame;$('pr').onclick=resumeGame;$('pmn').onclick=toMenu;
@@ -1281,8 +1571,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&!online)pa
 let room=null,onl=0,onp=0;
 function setPres(v){try{room&&room.presence({play:v}).catch(()=>{})}catch(e){}}
 function setOnline(){const e=$('on'),h=$('hon');
-  if(!room){if(e)e.textContent='⚪ Онлайн недоступен';if(h)h.textContent='';return}
-  if(e)e.textContent='🟢 Онлайн: '+onl+(onp?' (в бою: '+onp+')':'');
+  if(!room){if(e)e.textContent=t('offline');if(h)h.textContent='';return}
+  if(e)e.textContent='🟢 '+t('online')+': '+onl+(onp?' ('+(LANG==='en'?'in battle':'в бою')+')':'');
   if(h)h.textContent='🟢 '+onl}
 try{
   if(window.claude&&window.claude.use){
@@ -1297,13 +1587,14 @@ try{
 
 // ================= ОНЛАЙН =================
 const net={ws:null,url:'',id:null,lobby:null,scr:null,tp:0,iv:null,cbs:[],lobbies:[],online:0,fromPause:false,resume:'',manual:false,reconnecting:false,retryTimer:null,retryCount:0};
-let myName='';try{myName=localStorage.getItem('pn')||''}catch(e){}if(!myName)myName='Игрок'+(100+R()*900|0);
+let myName='';
 try{net.resume=sessionStorage.getItem('tankResume')||''}catch(e){}
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function saveResumeToken(t){net.resume=t||'';try{if(t)sessionStorage.setItem('tankResume',t);else sessionStorage.removeItem('tankResume')}catch(e){}}
 function srvAddr(){
+  if(CG.on)return ONLINE_SERVER;              // на CrazyGames файлы статичны, а онлайн-сервер — Render
   if(/^https?:$/.test(location.protocol)&&!window.claude)return location.host;
-  let u='';try{u=localStorage.getItem('srv')||''}catch(e){}
+  let u=persistGet('srv','');
   return u
 }
 function wsUrl(u){u=String(u||'').trim().replace(/^(wss?|https?):\/\//,'').replace(/\/.*$/,'');if(!u)return '';return (/^(localhost|127\.|192\.168\.|10\.)/.test(u)?'ws://':'wss://')+u}
@@ -1362,14 +1653,36 @@ function netConnect(cb,opt={}){
   ws.onerror=()=>fin(false,'Нет связи с сервером');
   ws.onclose=()=>{fin(false,'Соединение закрыто');if(net.ws===ws){net.ws=null;if(!net.manual&&(online||net.lobby))scheduleReconnect()}};
 }
+function localizeServerMsg(msg){
+  if(LANG!=='en')return msg;
+  const m={
+    'Хост вышел из игры':'The host left the game',
+    'Слишком много лобби, попробуй позже':'Too many lobbies, try again later',
+    'Лобби с таким кодом не найдено':'Lobby with this code was not found',
+    'Игра в этом лобби уже началась':'This lobby has already started',
+    'Лобби заполнено (4/4)':'Lobby is full (4/4)',
+    'Неверный пароль':'Wrong password',
+    'Нужно минимум 2 игрока':'At least 2 players are required',
+    'Соединение закрыто':'Connection closed',
+    'Нет связи с сервером':'No connection to server',
+    'Сервер не отвечает':'Server is not responding',
+    'Неверный адрес сервера':'Invalid server address',
+    'Не удалось восстановить соединение':'Could not restore the connection',
+    'Не удалось войти в игру':'Could not enter the game'
+  };
+  return m[msg]||msg;
+}
 function netEnded(msg){
+  msg=localizeServerMsg(msg);
   if(state==='over')return;
   net.manual=true;if(net.retryTimer){clearTimeout(net.retryTimer);net.retryTimer=null}net.reconnecting=false;saveResumeToken('');
   net.lobby=null;online=false;role=null;ovl=false;if(P)P.ch=false;net.scr=null;net.fromPause=false;clearInterval(net.iv);lobChip();
   state='menu';$('cd').style.display='none';$('pm').style.display='none';$('bs').style.display='none';
-  $('t').innerHTML='СТАЛЬНОЙ<br>РУБЕЖ';$('m').innerHTML=esc(msg);$('cn').style.display='';coinLabel();$('go').textContent='В БОЙ';$('ov').style.display='flex';drawMenuTank();
+  $('t').innerHTML=t('title');$('m').innerHTML=esc(msg);$('cn').style.display='';coinLabel();$('go').textContent=t('battle');$('ov').style.display='flex';drawMenuTank();applyLocale();drawMenuTank();
 }
 function netErr(msg){
+  msg=localizeServerMsg(msg);
+  if(msg==='Соединение закрыто')msg=t('disconnected');
   const e=$('ost');
   if(e&&$('bs').style.display!=='none'){e.style.color='#ff8a6a';e.textContent='⚠ '+msg}
   else if($('pm').style.display==='flex'){$('pmi').textContent='⚠ '+msg;net.fromPause=false}
@@ -1410,13 +1723,14 @@ function onStart(){
 }
 function hostBegin(members,resume){
   if(!resume)start();
+  cgContext();
   online=true;role='host';P.id=net.id;P.name=myName;PL=[P];
   members.forEach((m,i)=>{if(m.id===net.id)return;const q=mkP(m.tk);q.id=m.id;q.name=m.name;const a=i*1.6+.6;q.x=P.x+Math.cos(a)*U*3;q.y=P.y+Math.sin(a)*U*3;PL.push(q)});
   PL.forEach((p,i)=>p.slot=i);
   state='play';ovl=false;P.ch=false;net.fromPause=false;snapT=0;
   $('pm').style.display='none';$('ov').style.display='none';$('bs').style.display='none';
   relay('all',{k:'init',walls:walls.map(w=>[w.i,w.j,w.st?3:w.hp,w.st?1:0]),pl:PL.map(p=>({id:p.id,name:p.name,tk:p.tk,x:Math.round(p.x),y:Math.round(p.y)})),wave});
-  banner('ОНЛАЙН','Игроков: '+PL.length);lobChip();last=performance.now();
+  banner(t('online'),t('players')+': '+PL.length);lobChip();last=performance.now();
 }
 function onInit(d){
   grid();walls=d.walls.map(a=>({x:GX+a[0]*GG,y:GY+a[1]*GG,w:GG,h:GG,hp:a[3]?1e9:a[2],st:a[3],i:a[0],j:a[1]}));
@@ -1431,11 +1745,15 @@ function onRelay(from,d){
   if(role==='host'){
     if(d.k==='pose'){const p=PL.find(q=>q.id===from);if(p){p.x=d.x;p.y=d.y;p.a=d.a;p.t=d.t;p.fire=!!d.f;p.ch=!!d.ch}}
     else if(d.k==='up'){const p=PL.find(q=>q.id===from),u=UP[d.i];if(p&&u)u[3](p)}
+    else if(d.k==='revive'){applyRevive(from,!!d.ad)}
+    else if(d.k==='endReq'){if(PL.every(q=>q.dead))over()}
   }else if(d.k==='init')onInit(d);
   else if(role==='guest'){
     if(d.k==='snap')applySnap(d);
     else if(d.k==='lvl')P.pend++;
     else if(d.k==='stun'){P.stun=d.t||.5;P.stunImm=P.stun+.8;P.fire=false;shake=Math.max(shake,6);try{navigator.vibrate&&navigator.vibrate([30,30,50])}catch(e){}}
+    else if(d.k==='reviveOff'){if(from!==P.id){ovl=true;TV.pauseMenu=true;stopRevTimer()}}
+    else if(d.k==='revived'){ovl=false;TV.pauseMenu=false;RVS.active=false;if(d.id===P.id){state='play';last=performance.now();cgGameplay(1)}}
     else if(d.k==='over'){state='over';online=false;role=null;ovl=false;netLeave();setTimeout(()=>endRun(d.sc,d.w),900)}
   }
 }
@@ -1490,26 +1808,26 @@ function applyFx(f){const x=f[0],y=f[1],c=f[2];
 
 // ---------- окна ----------
 function modeScreen(){net.scr=null;clearInterval(net.iv);
-  $('bs').innerHTML='<h2>РЕЖИМ ИГРЫ</h2><div class="col"><button id="m1">ВОЛНЫ</button><button id="m2" class="sc">ОНЛАЙН</button><button id="m3" class="sc">НАЗАД</button></div>';
+  $('bs').innerHTML=`<h2>${t('mode')}</h2><div class="col"><button id="m1">${t('waves')}</button><button id="m2" class="sc">${t('online')}</button><button id="m3" class="sc">${t('back')}</button></div>`;
   $('bs').style.display='block';$('m1').onclick=start;$('m2').onclick=onlineScreen;$('m3').onclick=()=>$('bs').style.display='none'}
 function renderList(){
   const e=$('lbl');if(!e)return;const a=net.lobbies||[];
-  e.innerHTML=a.length?a.map(l=>`<div class="lr" data-c="${esc(l.code)}" data-k="${l.lock?1:0}"><b>${esc(l.name)}</b><span>${esc(l.code)} · 👥 ${l.n}/${l.max}${l.lock?' 🔒':''}${l.started?' · в бою':''}</span></div>`).join(''):'<p style="font-family:system-ui,sans-serif;font-size:14px;opacity:.8;margin:0">Лобби пока нет — создай своё.</p>';
+  e.innerHTML=a.length?a.map(l=>`<div class="lr" data-c="${esc(l.code)}" data-k="${l.lock?1:0}"><b>${esc(l.name)}</b><span>${esc(l.code)} · 👥 ${l.n}/${l.max}${l.lock?' 🔒':''}${l.started?' · '+(LANG==='en'?'in battle':'в бою'):''}</span></div>`).join(''):`<p style="font-family:system-ui,sans-serif;font-size:14px;opacity:.8;margin:0">${t('noLobbies')}</p>`;
   e.querySelectorAll('.lr').forEach(d=>d.onclick=()=>{$('jc').value=d.dataset.c;if(d.dataset.k==='1')$('jp').focus()});
-  const s=$('ost');if(s&&!s.style.color)s.textContent='🟢 Онлайн на сервере: '+(net.online||'?');
+  const s=$('ost');if(s&&!s.style.color)s.textContent='🟢 '+t('onlinePlayers')+': '+(net.online||'?');
 }
 function onlineScreen(){
   net.scr='list';clearInterval(net.iv);
   const needSrv=!/^https?:$/.test(location.protocol)||!!window.claude;
-  $('bs').innerHTML=`<h2>ОНЛАЙН</h2><div class="row"><input id="nm" maxlength="14" placeholder="Ваше имя" value="${esc(myName)}">${needSrv?`<input id="sv" placeholder="Сервер (xxx.onrender.com)" value="${esc(srvAddr())}">`:''}</div><p id="ost">Подключение…</p><div id="lbl" class="gr"></div><div class="row"><input id="jc" maxlength="4" placeholder="Код" style="max-width:90px;text-transform:uppercase"><input id="jp" maxlength="16" placeholder="Пароль (если есть)"><button id="jb" class="sm">ПРИСОЕДИНИТЬСЯ</button></div><div class="row"><button id="ob" class="sm sc">НАЗАД</button><button id="oc" class="sm">СОЗДАТЬ ЛОББИ</button></div>`;
+  $('bs').innerHTML=`<h2>${t('online')}</h2><div class="row"><input id="nm" maxlength="14" placeholder="${t('name')}" value="${esc(myName)}">${needSrv?`<input id="sv" placeholder="${t('server')}" value="${esc(srvAddr())}">`:''}</div><p id="ost">${t('connecting')}</p><div id="lbl" class="gr"></div><div class="row"><input id="jc" maxlength="4" placeholder="${t('code')}" style="max-width:90px;text-transform:uppercase"><input id="jp" maxlength="16" placeholder="${t('password')}"><button id="jb" class="sm">${t('join')}</button></div><div class="row"><button id="ob" class="sm sc">${t('back')}</button><button id="oc" class="sm">${t('createLobby')}</button></div>`;
   $('bs').style.display='block';
-  const save=()=>{myName=($('nm').value.trim()||myName).slice(0,14);try{localStorage.setItem('pn',myName);if($('sv'))localStorage.setItem('srv',$('sv').value.trim())}catch(e){}};
+  const save=()=>{myName=($('nm').value.trim()||myName).slice(0,14);persistSet('pn',myName);if($('sv'))persistSet('srv',$('sv').value.trim())};
   const status=(t,bad)=>{const e=$('ost');if(e&&net.scr==='list'){e.textContent=t;e.style.color=bad?'#ff8a6a':''}};
   const conn=cb=>{save();
-    if(window.claude&&!srvAddr()){status('⚠ Внутри claude.ai онлайн заблокирован. Открой игру по адресу своего сервера (Render) или укажи его выше.',1);return}
-    status('Подключение… (бесплатный сервер может просыпаться до минуты)');
+    if(window.claude&&!srvAddr()){status(LANG==='en'?'⚠ Online is blocked inside claude.ai. Open the game from your Render URL or enter the server above.':'⚠ Внутри claude.ai онлайн заблокирован. Открой игру по адресу своего сервера (Render) или укажи его выше.',1);return}
+    status(LANG==='en'?'Connecting… (the free server may take up to a minute to wake)':'Подключение… (бесплатный сервер может просыпаться до минуты)');
     netConnect((ok,m)=>{if(net.scr!=='list')return;if(!ok){status(m,1);return}
-      status('🟢 Онлайн на сервере: '+(net.online||'?'));send({t:'list'});clearInterval(net.iv);
+      status('🟢 '+t('onlinePlayers')+': '+(net.online||'?'));send({t:'list'});clearInterval(net.iv);
       net.iv=setInterval(()=>{if(net.scr!=='list'){clearInterval(net.iv);return}send({t:'list'})},3000);cb&&cb()})};
   $('ob').onclick=()=>{save();modeScreen()};
   $('oc').onclick=()=>conn(createScreen);
@@ -1518,33 +1836,41 @@ function onlineScreen(){
 }
 function createScreen(){
   net.scr='create';clearInterval(net.iv);
-  $('bs').innerHTML=`<h2>СОЗДАТЬ ЛОББИ</h2><div class="row"><input id="cn2" maxlength="20" placeholder="Название лобби" value="${esc('Лобби '+myName)}"><input id="cp" maxlength="16" placeholder="Пароль (необязательно)"></div><p id="ost"></p><div class="row"><button id="cb" class="sm sc">НАЗАД</button><button id="cc" class="sm">СОЗДАТЬ</button></div>`;
+  $('bs').innerHTML=`<h2>${t('createLobby')}</h2><div class="row"><input id="cn2" maxlength="20" placeholder="${t('newLobby')}" value="${esc((LANG==='en'?'Lobby ':'Лобби ')+myName)}"><input id="cp" maxlength="16" placeholder="${t('passwordOptional')}"></div><p id="ost"></p><div class="row"><button id="cb" class="sm sc">${t('back')}</button><button id="cc" class="sm">${t('create')}</button></div>`;
   $('cb').onclick=onlineScreen;
   $('cc').onclick=()=>send({t:'create',name:$('cn2').value.trim()||'Лобби',pass:$('cp').value,pn:myName,tk:equip});
 }
 function roomScreen(){
   const L=net.lobby;if(!L)return;const host=L.host===net.id;
   if(net.scr!=='room'){net.scr='room';clearInterval(net.iv);
-    $('bs').innerHTML=`<h2>ЛОББИ</h2><p id="rmh" style="margin:2px 0"></p><p id="rmn" style="margin:2px 0;font-family:system-ui,sans-serif;font-size:14px"></p><div id="rml" class="gr"></div><p id="ost"></p><div class="row"><button id="rx" class="sm sc">ВЫЙТИ</button><button id="rs2" class="sm">НАЧАТЬ</button></div>`;
+    $('bs').innerHTML=`<h2>${t('lobby')}</h2><p id="rmh" style="margin:2px 0"></p><p id="rmn" style="margin:2px 0;font-family:system-ui,sans-serif;font-size:14px"></p><div id="rml" class="gr"></div><p id="ost"></p><div class="row"><button id="rx" class="sm sc">${t('leave')}</button><button id="rs2" class="sm">${t('start')}</button></div>`;
     $('bs').style.display='block';
     $('rx').onclick=()=>{netLeave();onlineScreen()};
     $('rs2').onclick=()=>send({t:'start'});
   }
   $('rmh').innerHTML=`<b>${esc(L.name)}</b> · Код: <b style="color:var(--acc);font-size:1.5em;letter-spacing:3px">${esc(L.code)}</b>${L.lock?' 🔒':''}`;
-  $('rmn').textContent=`Игроков: ${L.players.length}/${L.max} (минимум ${L.min})`+(host?'':' · ждём, пока хост начнёт игру');
-  $('rml').innerHTML=L.players.map(p=>`<div class="lr" style="cursor:default"><b>${esc(p.name)}</b><span>${p.id===L.host?'👑 хост':'игрок'}${p.id===net.id?' (вы)':''}</span></div>`).join('');
+  $('rmn').textContent=`${t('players')}: ${L.players.length}/${L.max} (${t('minimum')} ${L.min})`+(host?'':' · '+t('waitingHost'));
+  $('rml').innerHTML=L.players.map(p=>`<div class="lr" style="cursor:default"><b>${esc(p.name)}</b><span>${p.id===L.host?'👑 '+t('host'):t('player')}${p.id===net.id?' ('+t('you')+')':''}</span></div>`).join('');
   const b=$('rs2');b.style.display=host?'':'none';b.disabled=L.players.length<L.min;
 }
 $('pmo').onclick=()=>{
   if(state!=='pause')return;
-  if(!wsUrl(srvAddr())){$('pmi').textContent='Адрес сервера не задан. Открой: МЕНЮ → В БОЙ → ОНЛАЙН и укажи его.';return}
-  net.fromPause=true;$('pmi').textContent='Подключение…';
+  if(!wsUrl(srvAddr())){$('pmi').textContent=t('notSet');return}
+  net.fromPause=true;$('pmi').textContent=t('connecting');
   netConnect((ok,m)=>{if(!ok){net.fromPause=false;$('pmi').textContent='⚠ '+m;return}send({t:'create',name:'Забег '+myName,pass:$('pmpw').value,pn:myName,tk:equip})});
 };
 $('pms').onclick=()=>send({t:'start'});
 $('pmc').onclick=()=>{netLeave();net.fromPause=false;pmRefresh()};
 requestAnimationFrame(t=>{last=t;loop(t)});
 drawMenuTank();
+// Загрузка завершена только после SDK/data initialization. gameplayStart отвечает за первый игровой вход.
+saveReadyPromise.then(()=>{
+  $('go').disabled=false;
+  cgLoading(0);
+  applyLocale();
+  applyGate();
+  try{if(state==='menu')musicPlay('menu')}catch(e){}
+});
 </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 3000;
-const GAME_VERSION = '1.2.5';
+const GAME_VERSION = '1.3.0';
 const ADMIN_KEY = String(process.env.ADMIN_KEY || '').trim();
 const adminSessions = new Map();
 const ADMIN_SESSION_MS = 8 * 60 * 60 * 1000;
