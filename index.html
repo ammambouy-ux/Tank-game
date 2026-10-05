@@ -103,7 +103,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.3.5';
+const GAME_VERSION='1.3.6';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -409,7 +409,7 @@ function sfx(n,o={}){
   if(c.createStereoPanner&&o.pan){const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));s.connect(p);p.connect(g)}else s.connect(g);
   g.connect(c.destination);try{s.start()}catch(e){}
 }
-const MUSIC={fileNames:[],byBase:{},cur:null,curName:'',playing:false,vol:.35};
+const MUSIC={fileNames:['menu.mp3','battle.mp3','battle2.mp3'],byBase:{},cur:null,curName:'',playing:false,vol:.35};
 function musicEl(url){const a=new Audio();a.loop=true;a.preload='auto';a.src=url;a.volume=0;return a}
 function musicEnsure(n){if(MUSIC.byBase[n])return MUSIC.byBase[n];const files=MUSIC.fileNames.filter(f=>baseName(f)===n);if(!files.length)return null;
   const arr=files.map(f=>musicEl('PackMusic/'+f));arr.forEach(a=>{try{a.load()}catch(e){}});MUSIC.byBase[n]=arr;return arr}
@@ -428,13 +428,14 @@ async function loadMusicPack(){
   try{
     let list=[];
     if(/^https?:$/.test(location.protocol)){try{const r=await fetch('api/music',{cache:'no-store'});if(r.ok)list=await r.json()}catch(e){}}
-    if(!Array.isArray(list))list=[];
-    MUSIC.fileNames=list.filter(f=>AUDIO_EXT.test(f));
-    if(!MUSIC.fileNames.length)MUSIC.fileNames=['menu.mp3','battle.mp3','battle2.mp3'];
-  }catch(e){MUSIC.fileNames=[]}
+    if(Array.isArray(list)){
+      const files=list.filter(f=>AUDIO_EXT.test(f));
+      if(files.length)MUSIC.fileNames=files;
+    }
+  }catch(e){}
 }
 function sfxAt(n,x,y,o={}){if(!sndAllowed())return;const pan=Math.max(-1,Math.min(1,((x-camx)-SW/2)/(SW/2)));const d=Math.hypot(x-(camx+SW/2),y-(camy+SH/2));o=Object.assign({},o);if(o.vol==null)o.vol=1;o.vol*=Math.max(.25,1-d/(SW*1.1));o.pan=pan;sfx(n,o)}
-function audioKick(){audioResume();loadSfxPack();loadMusicPack();if(state==='menu')musicPlay('menu')}
+function audioKick(){audioResume();loadSfxPack();if(state==='menu')musicPlay('menu');loadMusicPack();}
 loadMusicPack();
 addEventListener('pointerdown',audioKick,{passive:true});addEventListener('keydown',audioKick,{passive:true});
 // ==============================================
