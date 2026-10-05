@@ -34,8 +34,9 @@ button:active{transform:translateY(4px);box-shadow:0 1px 0 #7a5a10}
 #wv{transform-origin:left}#wv.bp{animation:bp .6s}@keyframes bp{0%{transform:scale(2);color:var(--acc)}100%{transform:scale(1)}}
 #cd{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#141a10;padding:20px}
 #cd h2{margin:0;font-size:44px;font-weight:400;color:var(--acc)}#cd p{margin:0 0 6px;font-family:system-ui,sans-serif}
-.cr{display:grid;grid-template-columns:44px 1fr;gap:0 12px;width:min(92vw,360px);text-align:left;font-size:20px;padding:12px 16px;background:#2c3a22;color:var(--fg);border:2px solid var(--acc);box-shadow:none}
-.cr span{grid-row:span 2;font-size:32px;align-self:center}.cr i{font-style:normal;font-size:14px;font-family:system-ui,sans-serif;opacity:.85}
+.cr{display:grid;grid-template-columns:44px 1fr;gap:0 12px;width:min(92vw,360px);text-align:left;font-size:20px;padding:12px 16px;background:#2c3a22;color:var(--fg);border:3px solid var(--acc);box-shadow:none}
+.cr span{grid-row:span 3;font-size:32px;align-self:center}.cr b{display:block;font-weight:400}.cr i{font-style:normal;font-size:14px;font-family:system-ui,sans-serif;opacity:.85}.cr .rr{font-style:normal;font-size:11px;font-family:system-ui,sans-serif;letter-spacing:1px;opacity:.9;display:block;margin-bottom:2px}
+.cr.common{border-color:#9aa0a6}.cr.rare{border-color:#4ca6ff}.cr.epic{border-color:#b56cff}.cr.legendary{border-color:#ffb52e}
 #bs{position:fixed;inset:0;display:none;background:#141a10;padding:14px 20px;overflow-y:auto;touch-action:pan-y;z-index:5}
 #bs h2{margin:0;font-size:36px;font-weight:400;color:var(--acc)}#bs p{margin:2px 0 10px;font-family:system-ui,sans-serif;font-size:14px}
 .gr{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-bottom:14px}
@@ -103,7 +104,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.3.9';
+const GAME_VERSION='1.4.0';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -448,26 +449,40 @@ const BOSS_TYPES=new Set([5,9,10,11]);
 const HIVE_MAX_MINIONS=10;
 const ARC_MORTAR=U*9, ARC_ARTY=U*3.2;
 const STRIKE_T=0.65;
+const RARITIES=[
+  {ru:'ОБЫЧНОЕ',en:'COMMON',cls:'common'},
+  {ru:'РЕДКОЕ',en:'RARE',cls:'rare'},
+  {ru:'ЭПИЧЕСКОЕ',en:'EPIC',cls:'epic'},
+  {ru:'ЛЕГЕНДАРНОЕ',en:'LEGENDARY',cls:'legendary'}
+];
+const RARITY_VALS={
+  dmg:[.10,.20,.40,.75],rate:[.05,.10,.18,.30],spd:[.05,.10,.18,.30],armor:[10,20,40,75],repair:[25,50,90,150],vamp:[1,2,3,5],
+  shield:[.05,.08,.12,.18],splash:[.4,.7,1.2,1.8],regen:[.5,1,2,3.5],luck:[.015,.03,.05,.08],xpm:[.10,.20,.35,.55],
+  bs:[.10,.20,.40,.70],crit:[.05,.10,.20,.30],mag:[.5,1,2,3.5],frost:[.8,1.2,1.8,2.5],revhp:[.5,.6,.7,.8],
+  heavyDmg:[.30,.45,.65,.90],heavyRate:[.15,.18,.22,.28]
+};
 const UP=[
-['🔫','Мощный снаряд','+40% урона',p=>p.dmg*=1.4],
-['⚡','Скорострел','Стреляешь на 18% быстрее',p=>p.rate=Math.max(.1,p.rate*.82)],
-['💨','Форсаж','+12% скорости',p=>p.spd*=1.12],
-['🧱','Усиленная броня','+30 макс. HP и лечение',p=>{p.max+=30;p.hp+=30}],
-['🔧','Ремонт','Лечит 60 HP',p=>p.hp=Math.min(p.max,p.hp+60)],
-['✴️','Доп. ствол','+1 снаряд веером',p=>p.multi++],
-['🎯','Бронебойные','Снаряды пробивают +1 врага',p=>p.pierce++],
-['🩸','Вампиризм','+3 HP за каждое убийство',p=>p.vamp+=3],
-['🛡️','Экран','−10% получаемого урона',p=>p.armor=Math.min(.6,p.armor+.1)],
-['💥','Фугасы','Урон по площади вокруг попадания',p=>p.splash+=.8],
-['💚','Регенерация','+1.5 HP в секунду',p=>p.regen+=1.5],
-['🍀','Удача','+3% к шансу баффа',p=>p.luck+=.03],
-['📈','Опытный','+25% получаемого опыта',p=>p.xpm*=1.25],
-['🚀','Быстрые снаряды','+30% скорости полёта',p=>p.bs*=1.3],
-['💢','Критический удар','+15% шанс двойного урона',p=>p.crit=Math.min(.6,p.crit+.15)],
-['🧲','Магнит','Ремкомплекты притягиваются издалека',p=>p.mag+=1.5],
-['❄️','Заморозка','Попадания замедляют врагов',p=>p.frost=1],
-['👼','Второе дыхание','Воскрешение с 50% HP',p=>p.rev++],
-['🐘','Тяжёлая пушка','+80% урона, но −33% скорострельности',p=>{p.dmg*=1.8;p.rate*=1.33}]];
+['🔫','Мощный снаряд',r=>'+'+Math.round(RARITY_VALS.dmg[r]*100)+'% урона',(p,r)=>p.dmg*=1+RARITY_VALS.dmg[r]],
+['⚡','Скорострел',r=>'На '+Math.round(RARITY_VALS.rate[r]*100)+'% быстрее',(p,r)=>p.rate=Math.max(.1,p.rate*(1-RARITY_VALS.rate[r]))],
+['💨','Форсаж',r=>'+'+Math.round(RARITY_VALS.spd[r]*100)+'% скорости',(p,r)=>p.spd*=1+RARITY_VALS.spd[r]],
+['🧱','Усиленная броня',r=>'+'+RARITY_VALS.armor[r]+' макс. HP и лечение',(p,r)=>{p.max+=RARITY_VALS.armor[r];p.hp+=RARITY_VALS.armor[r]}],
+['🔧','Ремонт',r=>'Лечит '+RARITY_VALS.repair[r]+' HP',(p,r)=>p.hp=Math.min(p.max,p.hp+RARITY_VALS.repair[r])],
+['✴️','Залп','+1 снаряд',(p,r)=>p.multi=Math.min(4,p.multi+1),p=>p.multi<4],
+['↪️','Рикошет','+1 отскок от стен',(p,r)=>p.ricochet=Math.min(5,p.ricochet+1),p=>p.ricochet<5],
+['🎯','Бронебойные','Снаряды пробивают +1 врага',(p,r)=>p.pierce++],
+['🩸','Вампиризм',r=>'+'+RARITY_VALS.vamp[r]+' HP за убийство',(p,r)=>p.vamp+=RARITY_VALS.vamp[r]],
+['🛡️','Экран',r=>'−'+Math.round(RARITY_VALS.shield[r]*100)+'% получаемого урона',(p,r)=>p.armor=Math.min(.6,p.armor+RARITY_VALS.shield[r]),p=>p.armor<.6],
+['💥','Фугасы',r=>'Радиус урона +'+RARITY_VALS.splash[r].toFixed(1),(p,r)=>p.splash+=RARITY_VALS.splash[r]],
+['💚','Регенерация',r=>'+'+RARITY_VALS.regen[r]+' HP в секунду',(p,r)=>p.regen+=RARITY_VALS.regen[r]],
+['🍀','Удача',r=>'+'+Math.round(RARITY_VALS.luck[r]*100)+'% к шансу баффа',(p,r)=>p.luck+=RARITY_VALS.luck[r]],
+['📈','Опытный',r=>'+'+Math.round(RARITY_VALS.xpm[r]*100)+'% получаемого опыта',(p,r)=>p.xpm*=1+RARITY_VALS.xpm[r]],
+['🚀','Быстрые снаряды',r=>'+'+Math.round(RARITY_VALS.bs[r]*100)+'% скорости полёта',(p,r)=>p.bs*=1+RARITY_VALS.bs[r]],
+['💢','Критический удар',r=>'+'+Math.round(RARITY_VALS.crit[r]*100)+'% шанса двойного урона',(p,r)=>p.crit=Math.min(.6,p.crit+RARITY_VALS.crit[r]),p=>p.crit<.6],
+['🧲','Магнит',r=>'Ремкомплекты притягиваются ещё на '+RARITY_VALS.mag[r].toFixed(1)+'×',(p,r)=>p.mag+=RARITY_VALS.mag[r]],
+['❄️','Заморозка',r=>'Попадания замедляют врагов на '+RARITY_VALS.frost[r].toFixed(1)+' сек.',(p,r)=>p.frost=RARITY_VALS.frost[r],p=>p.frost<=0],
+['👼','Второе дыхание',r=>'1 воскрешение с '+Math.round(RARITY_VALS.revhp[r]*100)+'% HP',(p,r)=>{p.rev=1;p.revhp=RARITY_VALS.revhp[r]},p=>p.rev<1],
+['🐘','Тяжёлая пушка',r=>'+'+Math.round(RARITY_VALS.heavyDmg[r]*100)+'% урона, −'+Math.round(RARITY_VALS.heavyRate[r]*100)+'% скорострельности',(p,r)=>{p.dmg*=1+RARITY_VALS.heavyDmg[r];p.rate*=1+RARITY_VALS.heavyRate[r]}]
+];
 const UN=[1,2,3,4,3,5,4,6,5,10,20,15,1,8,6];
 const BOSS_ORDER=[5,9,11,10];
 function bossType(){const n=wave/5|0;return BOSS_ORDER[(n-1+BOSS_ORDER.length)%BOSS_ORDER.length]}
@@ -495,7 +510,7 @@ const BF_EN={dmg:'Double Damage',rate:'Fire Rate',spd:'Speed Boost',shield:'Shie
 function bfName(k){return LANG==='en'?(BF_EN[k]||k):(BF[k]?.[1]||k)}
 function showBanner(a,b){a=trText(a);b=trText(b||'');const e=$('bn');e.innerHTML=`<b>${a}</b><i>${b}</i>`;e.className='';void e.offsetWidth;e.className='show'}
 function banner(a,b){showBanner(a,b);if(online&&role==='host'&&bq.length<6)bq.push([a,b||''])}
-function mkP(tk){const eq=TANKS.find(x=>x.id===tk)||TANKS[0],m=eq.mod,p={id:0,name:'',slot:0,tk:eq.id,c1:eq.c1,c2:eq.c2,x:W/2,y:H/2,a:-Math.PI/2,t:-Math.PI/2,hp:100,max:100,cd:0,r:U*.75,xp:0,lvl:1,need:30,pend:0,dmg:1,rate:.33,spd:1,multi:1,pierce:0,vamp:0,armor:0,regen:0,splash:0,luck:0,xpm:1,bs:1,crit:0,mag:0,frost:0,rev:0,fire:false,ch:false,dead:false};
+function mkP(tk){const eq=TANKS.find(x=>x.id===tk)||TANKS[0],m=eq.mod,p={id:0,name:'',slot:0,tk:eq.id,c1:eq.c1,c2:eq.c2,x:W/2,y:H/2,a:-Math.PI/2,t:-Math.PI/2,hp:100,max:100,cd:0,r:U*.75,xp:0,lvl:1,need:30,pend:0,dmg:1,rate:.33,spd:1,multi:1,pierce:0,ricochet:0,vamp:0,armor:0,regen:0,splash:0,luck:0,xpm:1,bs:1,crit:0,mag:0,frost:0,rev:0,revhp:.5,fire:false,ch:false,dead:false};
   if(m.spd)p.spd*=m.spd;if(m.dmg)p.dmg*=m.dmg;if(m.armor)p.armor=Math.min(.6,p.armor+m.armor);if(m.max){p.max+=m.max;p.hp+=m.max}return p}
 function grid(){GG=U*1.6;GC=Math.floor(W/GG);GR=Math.floor(H/GG);GX=(W-GC*GG)/2;GY=(H-GR*GG)/2}
 function nearP(x,y){let b=null,bd=1e18;for(const p of PL){if(p.dead)continue;const d=(p.x-x)*(p.x-x)+(p.y-y)*(p.y-y);if(d<bd){bd=d;b=p}}return b}
@@ -577,9 +592,15 @@ function hitE(e,d,b){if(e.dead)return;const kr=b&&b.o;if(b&&e.k==8&&Math.cos(Mat
 function cards(){
   const p=P;p.pend--;st.L=st.R=null;sfx('levelup',{vol:.7});
   if(online){ovl=true;p.ch=true}else state='card';
-  const c=$('cd');c.innerHTML=`<h2>${t('level')} ${p.lvl}</h2><p>${t('levelPick')}</p>`;
-  [...UP].sort(()=>R()-.5).slice(0,3).forEach(u=>{const b=document.createElement('button');b.className='cr';b.innerHTML=`<span>${u[0]}</span><b>${upName(UP.indexOf(u))}</b><i>${upDesc(UP.indexOf(u))}</i>`;
-    b.onclick=()=>{u[3](p);if(online&&role==='guest')relay('host',{k:'up',i:UP.indexOf(u)});c.style.display='none';if(online){ovl=false;p.ch=false}else state='play'};c.appendChild(b)});
+  const c=$('cd');c.innerHTML='<h2>'+t('level')+' '+p.lvl+'</h2><p>'+t('levelPick')+'</p>';
+  const pool=UP.map((u,i)=>({u,i})).filter(x=>upAvailable(x.i,p)).sort(()=>R()-.5).slice(0,3);
+  for(const pick of pool){
+    const u=pick.u,i=pick.i,r=rollRarity(),b=document.createElement('button');
+    b.className='cr '+RARITIES[r].cls;
+    b.innerHTML='<span>'+u[0]+'</span><div><em class="rr">'+rarityName(r)+'</em><b>'+upName(i)+'</b><i>'+upDesc(i,r)+'</i></div>';
+    b.onclick=()=>{u[3](p,r);if(online&&role==='guest')relay('host',{k:'up',i,r});c.style.display='none';if(online){ovl=false;p.ch=false}else state='play'};
+    c.appendChild(b);
+  }
   c.style.display='flex'}
 const R=()=>Math.random();
 function hitsWall(x,y,r){for(const w of walls)if(x+r>w.x&&x-r<w.x+w.w&&y+r>w.y&&y-r<w.y+w.h)return true;return false}
@@ -682,12 +703,12 @@ function moveTank(o,dx,dy){
 }
 function turn(a,b,k){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return a+d*Math.min(1,k)}
 function shoot(o,own,sp,dmg,off=0){const a=o.t+off;
-  bl.push({x:o.x+Math.cos(a)*U*1.1,y:o.y+Math.sin(a)*U*1.1,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,own,dmg,l:1.6,pc:own?(o.pierce||0):0,h:[],o:own?o:null});
+  bl.push({x:o.x+Math.cos(a)*U*1.1,y:o.y+Math.sin(a)*U*1.1,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,own,dmg,l:1.6,pc:own?(o.pierce||0):0,ric:own?(o.ricochet||0):0,h:[],o:own?o:null});
   for(let i=0;i<4;i++)boom(o.x+Math.cos(o.t)*U*1.2,o.y+Math.sin(o.t)*U*1.2,1,'#ffd76a',U*3,.25);
   if(own){if(o===P)sfxAt('shoot',o.x,o.y,{vol:.5,pitch:.95+R()*.12})}else sfxAt('shoot',o.x,o.y,{vol:.5,pitch:.95+R()*.12})}
 function boom(x,y,n,c,sp,life){for(let i=0;i<n;i++){const a=R()*6.28,v=R()*sp;pt.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:life*(.5+R()),m:life,c,s:U*(.08+R()*.14)})}}
 function hurtP(p,d){if(p.ch||p.dead)return;d*=(1-p.armor)*(buffs.shield?.4:1);p.hp-=d;if(p===P){shake=8;sfx('playerhit',{vol:Math.min(.9,.35+d/40),pitch:.95+R()*.12});try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}}else sfxAt('playerhit',p.x,p.y,{vol:.3})
-  if(p.hp<=0){if(p.rev>0){p.rev--;p.hp=p.max*.5;boom(p.x,p.y,40,'#7dff8a',U*8,.8);if(p===P){banner('ВТОРОЕ ДЫХАНИЕ','');sfx('revive',{vol:.8})}}
+  if(p.hp<=0){if(p.rev>0){p.rev--;p.hp=p.max*(p.revhp||.5);boom(p.x,p.y,40,'#7dff8a',U*8,.8);if(p===P){banner('ВТОРОЕ ДЫХАНИЕ','');sfx('revive',{vol:.8})}}
   else{p.hp=0;p.dead=true;boom(p.x,p.y,50,'#ff8a3a',U*9,.9);fx(p.x,p.y,4);if(p===P||PL.every(q=>q.dead))sfx(p===P?'explode':'boom',{vol:.8,pitch:.8});
     if(p===P)onLocalDeath();
     else if(online&&role==='host'&&PL.every(q=>q.dead))over()}}}
@@ -723,16 +744,40 @@ const STR={
     title:'STEEL<br>FRONTIER',controls:'Left stick — move.<br>Right stick — aim and fire.<br>Pick up repair kits “+”.',wave:'WAVE',level:'LV.',sound:'SOUND',soundOn:'🔊 SOUND',soundOff:'🔇 SOUND',battle:'BATTLE',again:'PLAY AGAIN',enemies:'ENEMIES',garage:'GARAGE',admin:'ADMIN',online:'Online',offline:'⚪ Online unavailable',pause:'PAUSED',resume:'RESUME',openOnline:'OPEN ONLINE',closeOnline:'CLOSE ONLINE',menu:'MENU',mode:'GAME MODE',waves:'WAVES',back:'BACK',join:'JOIN',createLobby:'CREATE LOBBY',create:'CREATE',start:'START',leave:'LEAVE',invite:'INVITE',inviteCopied:'Invite link copied',inviteReady:'Invite link ready',inviteFailed:'Could not copy invite link',lobby:'LOBBY',players:'Players',minimum:'minimum',host:'host',player:'player',you:'you',waitingHost:'waiting for the host to start',room:'Code',downed:'DOWNED',watchAd:'🎬 WATCH AD',continueFor:'CONTINUE FOR',finish:'FINISH',reviveText:'You are down, but you can return to battle.',reviveReward:'Watch the ad to the end — you will return to battle with full HP and keep this wave.',adLoading:'Loading ad…',revCoins:'Or continue with coins.',score:'Score',record:'Best',waveWord:'Wave',buy:'BUY',owned:'OWNED',equipped:'EQUIPPED',select:'SELECT',notEnough:'NOT ENOUGH COINS',coinsFor:'earn them from battles (score ÷ 40)',healthGrows:'Enemy health grows by 10% each wave.',server:'Server (xxx.onrender.com)',name:'Your name',code:'Code',password:'Password (if any)',passwordOptional:'Online password (optional)',newLobby:'Lobby name',noLobbies:'No lobbies yet — create one.',connecting:'Connecting…',onlinePlayers:'Players online',disconnected:'Connection to server lost',notSet:'Server address is not set. Open: BATTLE → ONLINE and enter it.',rotate:'📱<br>Rotate your phone<br>to landscape',repair:'Repair kits',reviveAd:'REVIVE FOR AD',revive:'BACK TO BATTLE',waveStart:'GO!',waveClear:'CLEARED!',wait:'Loading…',levelPick:'Choose an upgrade',respawn:'Respawn on the next wave',secondWind:'SECOND WIND',stunned:'Stunned',downedShort:'DOWNED'}
 };
 const UP_EN=[
-  'Afterburner','Reinforced Armor','Repair','Extra Barrel','Armor Piercing','Vampirism','Shield','Explosives','Regeneration','Luck','Experienced','Fast Shells','Critical Hit','Magnet','Freeze','Second Wind','Heavy Cannon'
+  'Powerful Shell','Fire Rate','Afterburner','Reinforced Armor','Repair','Volley','Ricochet','Armor Piercing','Vampirism','Shield','Explosives','Regeneration','Luck','Experienced','Fast Shells','Critical Hit','Magnet','Freeze','Second Wind','Heavy Cannon'
 ];
-const UP_DESC_EN=['+12% speed','+30 max HP and healing','Heals 60 HP','+1 spread shell','Shells pierce +1 enemy','+3 HP per kill','−10% damage taken','Area damage on impact','+1.5 HP per second','+3% buff chance','+25% XP gain','+30% projectile speed','+15% double-damage chance','Repair kits attract from farther away','Hits slow enemies','Revive with 50% HP','+80% damage, −33% fire rate'];
+const UP_DESC_EN=[
+  r=>'+'+Math.round(RARITY_VALS.dmg[r]*100)+'% damage',
+  r=>Math.round(RARITY_VALS.rate[r]*100)+'% faster',
+  r=>'+'+Math.round(RARITY_VALS.spd[r]*100)+'% speed',
+  r=>'+'+RARITY_VALS.armor[r]+' max HP and healing',
+  r=>'Heals '+RARITY_VALS.repair[r]+' HP',
+  ()=>'+1 shell (max 4)',
+  ()=>'+1 wall bounce (max 5)',
+  ()=>'+1 enemy pierce',
+  r=>'+'+RARITY_VALS.vamp[r]+' HP per kill',
+  r=>'−'+Math.round(RARITY_VALS.shield[r]*100)+'% damage taken',
+  r=>'Impact area radius +'+RARITY_VALS.splash[r].toFixed(1),
+  r=>'+'+RARITY_VALS.regen[r]+' HP per second',
+  r=>'+'+Math.round(RARITY_VALS.luck[r]*100)+'% buff chance',
+  r=>'+'+Math.round(RARITY_VALS.xpm[r]*100)+'% XP gain',
+  r=>'+'+Math.round(RARITY_VALS.bs[r]*100)+'% projectile speed',
+  r=>'+'+Math.round(RARITY_VALS.crit[r]*100)+'% double-damage chance',
+  r=>'Repair kits attract '+RARITY_VALS.mag[r].toFixed(1)+'× farther',
+  r=>'Hits slow enemies for '+RARITY_VALS.frost[r].toFixed(1)+'s',
+  r=>'1 revive at '+Math.round(RARITY_VALS.revhp[r]*100)+'% HP',
+  r=>'+'+Math.round(RARITY_VALS.heavyDmg[r]*100)+'% damage, −'+Math.round(RARITY_VALS.heavyRate[r]*100)+'% fire rate'
+];
 const TANK_EN={std:['Standard','No bonuses'],desert:['Desert','+6% speed'],urban:['Urban','+10% armor'],crimson:['Crimson','+12% damage'],arctic:['Arctic','+20 max HP']};
 const EI_EN=[
   ['Infantry Tank','Basic enemy: drives toward you and shoots.'],['Sprinter','Fast and fragile. Never gives you a break.'],['Heavy','Slow but highly durable.'],['Sniper','Keeps distance and fires fast, accurate shots.'],['Kamikaze','Charges you and explodes on contact.'],['Boss','Every 5 waves. Fires a 3-shot spread and grants a buff when defeated.'],['Death Tank','Slow C4 carrier. Explodes on death or close approach — keep your distance.'],['Mortar','Indirect fire: warning circles appear on the ground. Also throws 1–2 mines into nearby random positions.'],['Shieldbearer','Takes 75% less damage from the front. Flank it.'],['Hive','BOSS. Summons drones and now fires its own twin burst. Destroy the swarm quickly.'],['Summoner','BOSS. Keeps distance, fires a spread and periodically summons 3 tanks. While they live, its barrier reduces damage.'],['Artillery','BOSS. Predictive artillery with seven patterns, delayed zones and multi-step barrages.'],['Hive Drone','Flying minion. Fast and agile, fires repeated short shots. The Hive cannot spawn a new swarm until all drones die.'],['Flamethrower','Mid-range tank with a flamethrower cone and burning puddles.'],['Tesla','Charges three lamps, then fires a stun bolt. Break line of sight to stop the charge.']
 ];
 function t(k){return (STR[LANG]&&STR[LANG][k])||STR.en[k]||k}
 function upName(i){return LANG==='en'?(UP_EN[i]||UP[i]?.[1]||''):(UP[i]?.[1]||'')}
-function upDesc(i){return LANG==='en'?(UP_DESC_EN[i]||UP[i]?.[2]||''):(UP[i]?.[2]||'')}
+function upDesc(i,r=0){const v=LANG==='en'?UP_DESC_EN[i]:UP[i]?.[2];return typeof v==='function'?v(r):(v||'')}
+function rarityName(r){const q=RARITIES[r]||RARITIES[0];return LANG==='en'?q.en:q.ru}
+function rollRarity(){const x=R();return x<.55?0:x<.85?1:x<.97?2:3}
+function upAvailable(i,p){const u=UP[i];return !u?.[4]||u[4](p)}
 function tankName(id){return LANG==='en'?(TANK_EN[id]?.[0]||id):(TANKS.find(x=>x.id===id)?.name||id)}
 function tankPerk(id){return LANG==='en'?(TANK_EN[id]?.[1]||''):(TANKS.find(x=>x.id===id)?.perk||'')}
 function enemyName(i){return LANG==='en'?(EI_EN[i]?.[0]||EI[i][0]):EI[i][0]}
@@ -1091,10 +1136,10 @@ function update(dt){
   for(const b of bl){
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.l-=dt;
     if(b.x<0||b.x>W||b.y<0||b.y>H)b.l=0;
-    for(const w of walls)if(w.hp>0&&b.x>w.x&&b.x<w.x+w.w&&b.y>w.y&&b.y<w.y+w.h){b.l=0;wHit(w,1);boom(b.x,b.y,6,'#c9884f',U*4,.4);if(w.hp<=0){boom(w.x+w.w/2,w.y+w.h/2,14,'#a8683a',U*5,.6);fx(w.x+w.w/2,w.y+w.h/2,3)}break}
+    for(const w of walls)if(w.hp>0&&b.x>w.x&&b.x<w.x+w.w&&b.y>w.y&&b.y<w.y+w.h){const ox=b.x,oy=b.y;wHit(w,1);boom(b.x,b.y,6,'#c9884f',U*4,.4);if(w.hp<=0){b.l=0;boom(w.x+w.w/2,w.y+w.h/2,14,'#a8683a',U*5,.6);fx(w.x+w.w/2,w.y+w.h/2,3);break}if(b.ric>0){b.ric--;const px=b.x-b.vx*dt,py=b.y-b.vy*dt;const left=px<=w.x&&ox>=w.x,right=px>=w.x+w.w&&ox<=w.x+w.w,top=py<=w.y&&oy>=w.y,bottom=py>=w.y+w.h&&oy<=w.y+w.h;let fx=left||right,fy=top||bottom;if(!fx&&!fy){const dx=Math.min(Math.abs(ox-w.x),Math.abs(ox-(w.x+w.w))),dy=Math.min(Math.abs(oy-w.y),Math.abs(oy-(w.y+w.h)));if(dx<dy)fx=true;else fy=true}if(fx)b.vx=-b.vx;if(fy)b.vy=-b.vy;b.x=px;b.y=py;if(left)b.x=w.x-1;if(right)b.x=w.x+w.w+1;if(top)b.y=w.y-1;if(bottom)b.y=w.y+w.h+1;boom(b.x,b.y,8,'#ffd76a',U*3.5,.35);sfxAt('shoot',b.x,b.y,{vol:.22,pitch:1.1+R()*.12})}else b.l=0;break}
     if(b.l<=0)continue;
     if(b.own){for(const e of en)if(Math.hypot(b.x-e.x,b.y-e.y)<e.r+3){
-      if(b.h.includes(e))continue;b.h.push(e);if(b.pc>0)b.pc--;else b.l=0;boom(b.x,b.y,5,'#fff',U*4,.3);const ow=b.o||P;hitE(e,b.dmg*(R()<ow.crit?2:1),b);if(ow.frost)e.slow=1.5;if(ow.splash)for(const o of en)if(o!==e&&Math.hypot(o.x-b.x,o.y-b.y)<U*(1+ow.splash))hitE(o,b.dmg*.5);
+      if(b.h.includes(e))continue;b.h.push(e);if(b.pc>0)b.pc--;else b.l=0;boom(b.x,b.y,5,'#fff',U*4,.3);const ow=b.o||P;hitE(e,b.dmg*(R()<ow.crit?2:1),b);if(ow.frost)e.slow=ow.frost;if(ow.splash)for(const o of en)if(o!==e&&Math.hypot(o.x-b.x,o.y-b.y)<U*(1+ow.splash))hitE(o,b.dmg*.5);
       break}}
     else if(state==='play'){for(const p of PL){if(!p.dead&&Math.hypot(b.x-p.x,b.y-p.y)<p.r+3){b.l=0;hurtP(p,b.dmg);if(b.tes)stunP(p,1);boom(b.x,b.y,8,b.tes?'#8ff4ff':'#ff5a3a',U*5,.4);break}}}
   }
@@ -1762,7 +1807,7 @@ function onRelay(from,d){
   if(!d)return;
   if(role==='host'){
     if(d.k==='pose'){const p=PL.find(q=>q.id===from);if(p){p.x=d.x;p.y=d.y;p.a=d.a;p.t=d.t;p.fire=!!d.f;p.ch=!!d.ch}}
-    else if(d.k==='up'){const p=PL.find(q=>q.id===from),u=UP[d.i];if(p&&u)u[3](p)}
+    else if(d.k==='up'){const p=PL.find(q=>q.id===from),u=UP[d.i];if(p&&u)u[3](p,d.r|0)}
     else if(d.k==='revive'){applyRevive(from,!!d.ad)}
     else if(d.k==='endReq'){if(PL.every(q=>q.dead))over()}
   }else if(d.k==='init')onInit(d);
