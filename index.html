@@ -968,6 +968,13 @@ $('rvend').onclick=()=>{if(RVS.active)doEnd()};
 function onLocalDeath(){
   revDeaths++;
   const allDead=PL.every(q=>q.dead);
+  if(online){
+    if(RVS.active)hideRevive();
+    ovl=false;TV.pauseMenu=false;
+    if(allDead)over();
+    else banner(t('downedShort'),t('respawn'));
+    return;
+  }
   const canRev=sdkEnvOn()||coins>=REVIVE_COIN_COST;
   if(canRev&&!revCooldown()&&!RVS.active){offerRevive();return}
   if(allDead)over();
