@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - apk-build-v1.4.0
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
