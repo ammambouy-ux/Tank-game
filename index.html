@@ -1177,8 +1177,8 @@ function update(dt){
           boom(T.x,T.y,28,'#ff8a32',U*7,.45);shake=Math.max(shake,10);
           e.st2=3;e.chargeLeft=.8;
         }
-        if(moveTank(e,(e.rdx||0)*e.sp*U*3.8*dt,(e.rdy||0)*e.sp*U*3.8*dt,dt)){
-          e.st2=3;e.chargeLeft=.8;
+        if(e._stuckTime>.08){
+          e.st2=3;e.chargeLeft=.8;e._stuckTime=0;
           boom(e.x,e.y,24,'#ffb03a',U*6,.4);fx(e.x,e.y,6);shake=Math.max(shake,7);
         }
         e.chargeLeft-=dt;
