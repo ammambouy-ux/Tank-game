@@ -104,7 +104,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.4.1';
+const GAME_VERSION='1.4.2';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -694,12 +694,44 @@ addEventListener('pointerup',up);addEventListener('pointercancel',up);
 addEventListener('contextmenu',e=>e.preventDefault());
 function vec(s){if(!s)return[0,0,0];const M=SU*2.6;let dx=s.x-s.ox,dy=s.y-s.oy;const d=Math.hypot(dx,dy);if(d<4)return[0,0,0];const m=Math.min(1,d/M);return[dx/d,dy/d,m]}
 const keys={};addEventListener('keydown',e=>keys[e.key.toLowerCase()]=1);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
-function moveTank(o,dx,dy){
-  let nx=Math.max(o.r,Math.min(W-o.r,o.x+dx));
-  if(!hitsWall(nx,o.y,o.r*.9))o.x=nx;else return 1;
-  let ny=Math.max(o.r,Math.min(H-o.r,o.y+dy));
-  if(!hitsWall(o.x,ny,o.r*.9))o.y=ny;else return 1;
-  return 0;
+function moveTank(o,dx,dy,dt=0){
+  const ox=o.x,oy=o.y;
+  let blockedX=false,blockedY=false;
+  const nx=Math.max(o.r,Math.min(W-o.r,o.x+dx));
+  if(!hitsWall(nx,o.y,o.r*.9))o.x=nx;else blockedX=true;
+  const ny=Math.max(o.r,Math.min(H-o.r,o.y+dy));
+  if(!hitsWall(o.x,ny,o.r*.9))o.y=ny;else blockedY=true;
+  const moved=Math.hypot(o.x-ox,o.y-oy);
+  const wanted=Math.hypot(dx,dy);
+  if(wanted>.01){
+    if(moved<=Math.max(.05,wanted*.08))o._stuckTime=(o._stuckTime||0)+dt;
+    else o._stuckTime=Math.max(0,(o._stuckTime||0)-dt*1.5);
+    o._lastMoveX=dx;o._lastMoveY=dy;
+  }else o._stuckTime=0;
+  return blockedX&&blockedY;
+}
+function tankCanAt(o,x,y){return x>=o.r&&x<=W-o.r&&y>=o.r&&y<=H-o.r&&!hitsWall(x,y,o.r*.9)}
+function nudgeTank(o,dx,dy){
+  const nx=Math.max(o.r,Math.min(W-o.r,o.x+dx));
+  const ny=Math.max(o.r,Math.min(H-o.r,o.y+dy));
+  if(!tankCanAt(o,nx,ny))return false;
+  o.x=nx;o.y=ny;return true;
+}
+function unstuckTank(o){
+  const vx=o._lastMoveX||0,vy=o._lastMoveY||0,m=Math.hypot(vx,vy)||1,step=U*.38;
+  const dx=vx/m,dy=vy/m;
+  const tries=[
+    [-dx*step,-dy*step],
+    [-dy*step,dx*step],
+    [dy*step,-dx*step],
+    [-Math.sign(dx||1)*step,0],
+    [0,-Math.sign(dy||1)*step]
+  ];
+  for(const [x,y] of tries)if(nudgeTank(o,x,y)){
+    o._stuckTime=0;
+    return true;
+  }
+  return false;
 }
 function turn(a,b,k){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return a+d*Math.min(1,k)}
 function shoot(o,own,sp,dmg,off=0,side=0){const a=o.t+off,nx=-Math.sin(a),ny=Math.cos(a);const sx=o.x+Math.cos(a)*U*1.1+nx*side,sy=o.y+Math.sin(a)*U*1.1+ny*side;
@@ -950,7 +982,7 @@ function ctrl(dt){
   P.fire=false;
   if(state==='play'&&!ovl&&!P.dead&&!(P.stun>0)){
     if(!st.L&&(mx||my)){const l=Math.hypot(mx,my);mx/=l;my/=l;mm=1}
-    if(mm>0){P.a=turn(P.a,Math.atan2(my,mx),dt*10);moveTank(P,mx*mm*U*5*sp*dt,my*mm*U*5*sp*dt);
+    if(mm>0){P.a=turn(P.a,Math.atan2(my,mx),dt*10);moveTank(P,mx*mm*U*5*sp*dt,my*mm*U*5*sp*dt,dt);
       if(R()<.4)boom(P.x-Math.cos(P.a)*U*.8,P.y-Math.sin(P.a)*U*.8,1,'#6b6a4a',U,.4)}
     const [ax,ay,am]=vec(st.R);
     if(am>0){P.t=turn(P.t,Math.atan2(ay,ax),dt*16);if(am>.3)P.fire=true}
@@ -978,7 +1010,7 @@ function update(dt){
     if(state!=='play'){vx=vy=0}
     if(e.k==10&&e.st2>0){vx=0;vy=0}
     if(e.k==14&&e.hold>0){vx=0;vy=0}
-    if(vx||vy){e.a=turn(e.a,Math.atan2(vy,vx),dt*6);const fk=(e.slow>0?.5:1)*(1+wave*.012)*(e.k==14&&e.lamp>0?.6:1);if(moveTank(e,vx*e.sp*U*.8*fk*dt,vy*e.sp*U*.8*fk*dt))e.dir*=-1}e.slow-=dt;
+    if(vx||vy){e.a=turn(e.a,Math.atan2(vy,vx),dt*6);const fk=(e.slow>0?.5:1)*(1+wave*.012)*(e.k==14&&e.lamp>0?.6:1);const mdx=vx*e.sp*U*.8*fk*dt,mdy=vy*e.sp*U*.8*fk*dt;if(moveTank(e,mdx,mdy,dt))e.dir*=-1;if(e._stuckTime>.35)unstuckTank(e)}e.slow-=dt;
     for(const o of en)if(o!==e){const ox=e.x-o.x,oy=e.y-o.y,od=Math.hypot(ox,oy),m=e.r+o.r;if(od>0&&od<m){e.x+=ox/od*(m-od)/2;e.y+=oy/od*(m-od)/2}}
     if(!(e.k==14&&e.hold>0))e.t=turn(e.t,ang+(Math.sin(performance.now()/500+e.dir)*.08),dt*4);
     e.cool-=dt;
