@@ -1,0 +1,190 @@
+name: Build Steel Frontier APK
+
+on:
+  push:
+    branches:
+      - apk-build-v1.4.0
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare APK project
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf apk-build
+          mkdir -p apk-build/www
+          cp index.html apk-build/www/index.html
+          cp -R PackMusic apk-build/www/PackMusic
+          cp -R PackSFXTanks apk-build/www/PackSFXTanks
+
+          cat > apk-build/package.json <<'JSON'
+          {
+            "name": "steel-frontier-apk",
+            "version": "1.4.0",
+            "private": true,
+            "scripts": {
+              "sync": "npx cap sync android"
+            },
+            "dependencies": {
+              "@capacitor/android": "6.1.0",
+              "@capacitor/app": "6.0.0",
+              "@capacitor/core": "6.1.0"
+            },
+            "devDependencies": {
+              "@capacitor/cli": "6.1.0"
+            }
+          }
+          JSON
+
+          cat > apk-build/capacitor.config.json <<'JSON'
+          {
+            "appId": "com.ammambouy.steelfrontier",
+            "appName": "Steel Frontier",
+            "webDir": "www",
+            "backgroundColor": "#141a10",
+            "android": {
+              "allowMixedContent": false
+            }
+          }
+          JSON
+
+      - name: Patch web app for offline APK mode
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("apk-build/www/index.html")
+          s = p.read_text(encoding="utf-8")
+
+          old = '<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js" defer></script>'
+          if old in s:
+              s = s.replace(old, '<script>window.__STEEL_FRONTIER_APP__=true;</script>', 1)
+          elif 'window.__STEEL_FRONTIER_APP__=true' not in s:
+              raise SystemExit("CrazyGames SDK tag not found")
+
+          needle = "async function cgInit(){\n"
+          if needle in s and "if(window.__STEEL_FRONTIER_APP__)" not in s:
+              s = s.replace(
+                  needle,
+                  "async function cgInit(){\n  if(window.__STEEL_FRONTIER_APP__){CG.ready=false;CG.on=false;await initPersistence();return}\n",
+                  1
+              )
+
+          needle = "function srvAddr(){\n"
+          if needle in s and "if(window.__STEEL_FRONTIER_APP__)return 'steel-frontier.onrender.com';" not in s:
+              s = s.replace(
+                  needle,
+                  "function srvAddr(){\n  if(window.__STEEL_FRONTIER_APP__)return 'steel-frontier.onrender.com';\n",
+                  1
+              )
+
+          s = s.replace(
+              "if(/^https?:$/.test(location.protocol))",
+              "if(!window.__STEEL_FRONTIER_APP__&&/^https?:$/.test(location.protocol))"
+          )
+
+          back = """<script>
+          (function(){
+            var A=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;
+            if(!A||!A.addListener)return;
+            A.addListener('backButton',function(){
+              try{
+                if(typeof state!=='undefined'&&state==='play'){pauseGame();return}
+                var pm=document.getElementById('pm');
+                if(pm&&pm.style.display==='flex'){
+                  var r=document.getElementById('pr');
+                  if(r){r.click();return}
+                }
+                var bs=document.getElementById('bs');
+                if(bs&&bs.style.display!=='none'){
+                  var ob=document.getElementById('ob');
+                  if(ob){ob.click();return}
+                }
+                if(A.minimizeApp)A.minimizeApp();
+              }catch(e){}
+            });
+          })();
+          </script>"""
+          if "A.addListener('backButton'" not in s:
+              s = s.replace("</body>", back + "</body>", 1)
+
+          p.write_text(s, encoding="utf-8")
+          print("APK web app patched")
+          PY
+
+      - name: Install Capacitor dependencies
+        working-directory: apk-build
+        run: npm install --no-audit --no-fund
+
+      - name: Create Android project
+        working-directory: apk-build
+        run: npx cap add android
+
+      - name: Configure Android
+        working-directory: apk-build
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          gradle = Path("android/app/build.gradle")
+          s = gradle.read_text(encoding="utf-8")
+          s = re.sub(r'versionCode\s+\d+', 'versionCode 140', s, count=1)
+          s = re.sub(r'versionName\s+"[^"]+"', 'versionName "1.4.0"', s, count=1)
+          gradle.write_text(s, encoding="utf-8")
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          s = manifest.read_text(encoding="utf-8")
+          s = re.sub(
+              r'(<activity\b[^>]*android:name="\.MainActivity"[^>]*)>',
+              r'\1 android:screenOrientation="landscape">',
+              s,
+              count=1
+          )
+          if 'android.permission.INTERNET' not in s:
+              s = s.replace('<manifest ', '<manifest ', 1)
+              s = s.replace('>\n', '>\n    <uses-permission android:name="android.permission.INTERNET" />\n', 1)
+          manifest.write_text(s, encoding="utf-8")
+          PY
+
+      - name: Sync Capacitor
+        working-directory: apk-build
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: apk-build/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: steel-frontier-1.4.0-debug-apk
+          path: apk-build/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
