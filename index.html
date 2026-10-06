@@ -32,7 +32,10 @@ button:active{transform:translateY(4px);box-shadow:0 1px 0 #7a5a10}
 #bn.show{animation:bn 1.8s ease-out}
 @keyframes bn{0%{opacity:0;transform:scale(2.4)}15%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
 #wv{transform-origin:left}#wv.bp{animation:bp .6s}@keyframes bp{0%{transform:scale(2);color:var(--acc)}100%{transform:scale(1)}}
-#cd{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#141a10;padding:20px}
+#cd{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.5);padding:20px;pointer-events:none}
+#cd .cr{transform:translateY(115vh);opacity:0}
+#cd .cr.reveal{animation:crIn .68s cubic-bezier(.2,.9,.25,1.15) forwards}
+@keyframes crIn{0%{transform:translateY(115vh) scale(.94);opacity:0}65%{transform:translateY(-5px) scale(1.01);opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
 #cd h2{margin:0;font-size:44px;font-weight:400;color:var(--acc)}#cd p{margin:0 0 6px;font-family:system-ui,sans-serif}
 .cr{display:grid;grid-template-columns:44px 1fr;gap:0 12px;width:min(92vw,360px);text-align:left;font-size:20px;padding:12px 16px;background:#2c3a22;color:var(--fg);border:3px solid var(--acc);box-shadow:none}
 .cr span{grid-row:span 3;font-size:32px;align-self:center}.cr b{display:block;font-weight:400}.cr i{font-style:normal;font-size:14px;font-family:system-ui,sans-serif;opacity:.85}.cr .rr{font-style:normal;font-size:11px;font-family:system-ui,sans-serif;letter-spacing:1px;opacity:.9;display:block;margin-bottom:2px}
@@ -104,7 +107,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.4.2';
+const GAME_VERSION='1.4.3';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -592,16 +595,23 @@ function hitE(e,d,b){if(e.dead)return;const kr=b&&b.o;if(b&&e.k==8&&Math.cos(Mat
 function cards(){
   const p=P;p.pend--;st.L=st.R=null;sfx('levelup',{vol:.7});
   if(online){ovl=true;p.ch=true}else state='card';
-  const c=$('cd');c.innerHTML='<h2>'+t('level')+' '+p.lvl+'</h2><p>'+t('levelPick')+'</p>';
+  const c=$('cd');c.innerHTML='<h2>'+t('level')+' '+p.lvl+'</h2><p>'+t('levelPick')+'</p>';c.style.pointerEvents='none';
   const pool=UP.map((u,i)=>({u,i})).filter(x=>upAvailable(x.i,p)).sort(()=>R()-.5).slice(0,3);
-  for(const pick of pool){
-    const u=pick.u,i=pick.i,r=upRarity(i),b=document.createElement('button');
-    b.className='cr '+RARITIES[r].cls;
+  const order=pool.map((_,i)=>i).sort(()=>R()-.5);
+  let maxDelay=0;
+  pool.forEach((pick,idx)=>{
+    const u=pick.u,i=pick.i,r=upRarity(i),b=document.createElement('button'),rank=order.indexOf(idx);
+    const delay=rank*120+R()*90;
+    maxDelay=Math.max(maxDelay,delay);
+    b.className='cr '+RARITIES[r].cls+' reveal';
+    b.style.animationDelay=delay+'ms';
     b.innerHTML='<span>'+u[0]+'</span><div><em class="rr">'+rarityName(r)+'</em><b>'+upName(i)+'</b><i>'+upDesc(i,r)+'</i></div>';
-    b.onclick=()=>{u[3](p,r);if(online&&role==='guest')relay('host',{k:'up',i,r});c.style.display='none';if(online){ovl=false;p.ch=false}else state='play'};
+    b.onclick=()=>{u[3](p,r);if(online&&role==='guest')relay('host',{k:'up',i,r});c.style.display='none';c.style.pointerEvents='none';if(online){ovl=false;p.ch=false}else state='play'};
     c.appendChild(b);
-  }
-  c.style.display='flex'}
+  });
+  c.style.display='flex';
+  setTimeout(()=>{if(c.style.display==='flex')c.style.pointerEvents='auto'},maxDelay+760);
+}
 const R=()=>Math.random();
 function hitsWall(x,y,r){for(const w of walls)if(x+r>w.x&&x-r<w.x+w.w&&y+r>w.y&&y-r<w.y+w.h)return true;return false}
 let GG,GC,GR,GX,GY,dist=null,blkA,fT=0;
