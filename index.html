@@ -112,7 +112,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="ld"><div class="box"><b id="ldt">Загрузка…</b><span>•••</span></div></div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.4.4';
+const GAME_VERSION='1.4.5';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -453,7 +453,7 @@ document.addEventListener('keydown',audioKick,{capture:true,passive:true});
 // ==============================================
 let P,PL=[],walls=[],en=[],bl=[],pt=[],pk=[],fires=[],flames=[],wave=1,score=0,spawnQ=0,spT=0,shake=0,last,rest=0,boss=false,buffs={},lastW=0,zn=[],EID=1,ovl=false,online=false,role=null,fq=[],wq=[],bq=[],snapT=0;
 const TV={pauseMenu:false,adPlaying:false};
-const BOSS_TYPES=new Set([5,9,10,11]);
+const BOSS_TYPES=new Set([5,9,10,11,15,16]);
 const HIVE_MAX_MINIONS=10;
 const ARC_MORTAR=U*9, ARC_ARTY=U*3.2;
 const STRIKE_T=0.65;
@@ -492,9 +492,9 @@ const UP=[
 ['🐘','Тяжёлая пушка',r=>'+'+Math.round(RARITY_VALS.heavyDmg[r]*100)+'% урона, −'+Math.round(RARITY_VALS.heavyRate[r]*100)+'% скорострельности',(p,r)=>{p.dmg*=1+RARITY_VALS.heavyDmg[r];p.rate*=1+RARITY_VALS.heavyRate[r]}]
 ];
 const UN=[1,2,3,4,3,5,4,6,5,10,20,15,1,8,6];
-const BOSS_ORDER=[5,9,11,10];
+const BOSS_ORDER=[5,9,11,10,15,16];
 function bossType(){const n=wave/5|0;return BOSS_ORDER[(n-1+BOSS_ORDER.length)%BOSS_ORDER.length]}
-const TCOL=[['#b5473a','#7d2f27'],['#d98a2b','#94591a'],['#7b4e9a','#513368'],['#3a8f96','#245a5e'],['#e8e04a','#8a8420'],['#c23b6b','#7a2244'],['#8a8a8a','#444'],['#5a7d3a','#38501f'],['#4a6a9a','#2e4468'],['#c9a227','#8a6d12'],['#7a3fa0','#3d1f55'],['#6a7a3a','#3e4a1f'],['#e8c42f','#8a7a1a'],['#e85a1a','#8a3010'],['#3fb4e8','#1d5a82']];
+const TCOL=[['#b5473a','#7d2f27'],['#d98a2b','#94591a'],['#7b4e9a','#513368'],['#3a8f96','#245a5e'],['#e8e04a','#8a8420'],['#c23b6b','#7a2244'],['#8a8a8a','#444'],['#5a7d3a','#38501f'],['#4a6a9a','#2e4468'],['#c9a227','#8a6d12'],['#7a3fa0','#3d1f55'],['#6a7a3a','#3e4a1f'],['#e8c42f','#8a7a1a'],['#e85a1a','#8a3010'],['#3fb4e8','#1d5a82'],['#a63b24','#5a1710'],['#673dcc','#281658']];
 const TANKS=[
 {id:'std',name:'Стандартный',cost:0,c1:'#5f8a3f',c2:'#3d5a27',perk:'Без бонусов',mod:{}},
 {id:'desert',name:'Пустынный',cost:150,c1:'#c2a25a',c2:'#8a7038',perk:'+6% скорости',mod:{spd:1.06}},
@@ -512,7 +512,7 @@ const EI=[['Пехотный танк','Базовый враг: едет к в�
 ['Артиллерист','БОСС. Держится на дальней дистанции и закидывает минами по площади. Точный выстрел по вам + три мины в случайные места рядом, круги большие — следите за телеграфом.',26,'4×26 по площади','Низкая','#6a7a3a'],
 ['Дрон Улья','Воздушный мини-юнит, призываемый ульем. Быстрый и вертлявый, бьёт короткими очередями. Пока жива хоть одна особь — улей не вызовет новый рой.',1,'9','Очень высокая','#e8c42f'],
 ['Огнемётчик','Средний танк с раструбом-огнемётом и баллонами по бокам. Пока вы в зоне — льёт непрерывную струю пламени, обжигая всё в конусе перед собой. Оставляет горящие лужи. Держите дистанцию и убивайте до подхода — в коридоре он смертелен.',6,'~17 / сек в конусе','Средняя','#e85a1a'],
-['Тесла','Вместо пушки — катушка. Когда загорятся все три лампочки на корме, бьёт зарядом: малый урон и оглушение на 1 сек (не едете и не стреляете). Заряд копится только на прямой видимости — прячьтесь за стены. После оглушения 0,8 сек иммунитета.',7,'8 + оглушение 1 с','Средняя','#3fb4e8']];
+['Тесла','Вместо пушки — катушка. Когда загорятся все три лампочки на корме, бьёт зарядом: малый урон и оглушение на 1 сек (не едете и не стреляете). Заряд копится только на прямой видимости — прячьтесь за стены. После оглушения 0,8 сек иммунитета.',7,'8 + оглушение 1 с','Средняя','#3fb4e8'],['Таранщик','БОСС 25-й волны. Периодически фиксирует направление и бросается в прямой таран. Во время подготовки его легко заметить — уйдите с линии атаки. При ударе о стену оглушается.',48,'~36 + таран','Средняя','#a63b24'],['Дисраптор','БОСС 30-й волны. Заряжает плазменный импульс и отмечает несколько зон вокруг вас. После короткой паузы круги взрываются — постоянно двигайтесь.',55,'~30 по площади','Низкая','#673dcc']];
 const BF={dmg:['🔥','Двойной урон'],rate:['⚡','Скорострельность'],spd:['💨','Ускорение'],shield:['🛡️','Щит'],multi:['✴️','Тройной залп']};
 const BF_EN={dmg:'Double Damage',rate:'Fire Rate',spd:'Speed Boost',shield:'Shield',multi:'Triple Shot'};
 function bfName(k){return LANG==='en'?(BF_EN[k]||k):(BF[k]?.[1]||k)}
@@ -680,7 +680,9 @@ function spawn(){
     {hp:44,sp:1.2,s:1.35,c:'#6a7a3a',d:'#3e4a1f',cd:2.5},
     {hp:6,sp:1.9,s:1.15,c:'#e85a1a',d:'#8a3010',cd:2.3},
     {hp:6,sp:1.9,s:1.15,c:'#e85a1a',d:'#8a3010',cd:2.3},
-    {hp:7,sp:1.7,s:1.2,c:'#3fb4e8',d:'#1d5a82',cd:99}
+    {hp:7,sp:1.7,s:1.2,c:'#3fb4e8',d:'#1d5a82',cd:99},
+    {hp:48,sp:1.55,s:1.6,c:'#a63b24',d:'#5a1710',cd:2.0},
+    {hp:55,sp:1.35,s:1.7,c:'#673dcc',d:'#281658',cd:1.9}
   ][type];
   if(!s){console.warn('Нет параметров для типа врага',type);return}
   const isBoss=BOSS_TYPES.has(type);
@@ -689,7 +691,7 @@ function spawn(){
   for(let k=0;k<25;k++){
     const g=R()*6.28,dd=SW*.5+R()*U*6,e={x:Math.max(U,Math.min(W-U,T.x+Math.cos(g)*dd)),y:Math.max(U,Math.min(H-U,T.y+Math.sin(g)*dd*.7))};
     if(!hitsWall(e.x,e.y,U*s.s)&&al.every(p=>Math.hypot(e.x-p.x,e.y-p.y)>U*7)){
-        en.push({...e,...s,id:EID++,k:type,hp:s.hp*hpMul,mh:s.hp*hpMul,xp:Math.ceil(s.hp*4+3),sc:s.hp*60,a:0,t:0,r:U*.75*s.s,cool:(isBoss?.7:1)+R()*(isBoss?.7:1.5),spawnCd:0,dir:R()<.5?1:-1,slow:0,boss:isBoss,dmgMul:isBoss?(1.22+wave*.012):1,rc:0,st2:0,chargeLeft:0,chargeFx:0,aimX:T.x,aimY:T.y,aimVx:0,aimVy:0,targetId:null,artPat:-1,ramCount:0,ramHit:false,emitT:0,dps:0,lamp:0,lt:0,hold:0,tfl:0,dis:0});
+        en.push({...e,...s,id:EID++,k:type,hp:s.hp*hpMul,mh:s.hp*hpMul,xp:Math.ceil(s.hp*4+3),sc:s.hp*60,a:0,t:0,r:U*.75*s.s,cool:(isBoss?.7:1)+R()*(isBoss?.7:1.5),spawnCd:0,dir:R()<.5?1:-1,slow:0,boss:isBoss,dmgMul:isBoss?(1.22+wave*.012):1,rc:0,st2:0,chargeLeft:0,chargeFx:0,aimX:T.x,aimY:T.y,aimVx:0,aimVy:0,targetId:null,artPat:-1,ramCount:0,ramHit:false,emitT:0,dps:0,lamp:0,lt:0,hold:0,tfl:0,dis:0,ramCooldown:4.2+R()*1.8,pulseCd:4.5+R()*1.5});
       sfxAt('spawn',e.x,e.y,{vol:isBoss?.5:.22,pitch:isBoss?.7:.95+R()*.15});
       return;
     }
@@ -817,7 +819,7 @@ const UP_DESC_EN=[
 ];
 const TANK_EN={std:['Standard','No bonuses'],desert:['Desert','+6% speed'],urban:['Urban','+10% armor'],crimson:['Crimson','+12% damage'],arctic:['Arctic','+20 max HP']};
 const EI_EN=[
-  ['Infantry Tank','Basic enemy: drives toward you and shoots.'],['Sprinter','Fast and fragile. Never gives you a break.'],['Heavy','Slow but highly durable.'],['Sniper','Keeps distance and fires fast, accurate shots.'],['Kamikaze','Charges you and explodes on contact.'],['Boss','Every 5 waves. Fires a 3-shot spread and grants a buff when defeated.'],['Death Tank','Slow C4 carrier. Explodes on death or close approach — keep your distance.'],['Mortar','Indirect fire: warning circles appear on the ground. Also throws 1–2 mines into nearby random positions.'],['Shieldbearer','Takes 75% less damage from the front. Flank it.'],['Hive','BOSS. Summons drones and now fires its own twin burst. Destroy the swarm quickly.'],['Summoner','BOSS. Keeps distance, fires a spread and periodically summons 3 tanks. While they live, its barrier reduces damage.'],['Artillery','BOSS. Predictive artillery with seven patterns, delayed zones and multi-step barrages.'],['Hive Drone','Flying minion. Fast and agile, fires repeated short shots. The Hive cannot spawn a new swarm until all drones die.'],['Flamethrower','Mid-range tank with a flamethrower cone and burning puddles.'],['Tesla','Charges three lamps, then fires a stun bolt. Break line of sight to stop the charge.']
+  ['Infantry Tank','Basic enemy: drives toward you and shoots.'],['Sprinter','Fast and fragile. Never gives you a break.'],['Heavy','Slow but highly durable.'],['Sniper','Keeps distance and fires fast, accurate shots.'],['Kamikaze','Charges you and explodes on contact.'],['Boss','Every 5 waves. Fires a 3-shot spread and grants a buff when defeated.'],['Death Tank','Slow C4 carrier. Explodes on death or close approach — keep your distance.'],['Mortar','Indirect fire: warning circles appear on the ground. Also throws 1–2 mines into nearby random positions.'],['Shieldbearer','Takes 75% less damage from the front. Flank it.'],['Hive','BOSS. Summons drones and now fires its own twin burst. Destroy the swarm quickly.'],['Summoner','BOSS. Keeps distance, fires a spread and periodically summons 3 tanks. While they live, its barrier reduces damage.'],['Artillery','BOSS. Predictive artillery with seven patterns, delayed zones and multi-step barrages.'],['Hive Drone','Flying minion. Fast and agile, fires repeated short shots. The Hive cannot spawn a new swarm until all drones die.'],['Flamethrower','Mid-range tank with a flamethrower cone and burning puddles.'],['Tesla','Charges three lamps, then fires a stun bolt. Break line of sight to stop the charge.'],['Rammer','BOSS on wave 25. Locks a direction and charges in a straight line. Leave the line during the telegraph; it stuns itself when it hits a wall.'],['Disruptor','BOSS on wave 30. Charges a plasma pulse and marks several zones around you. Keep moving before the delayed explosions.']
 ];
 function t(k){return (STR[LANG]&&STR[LANG][k])||STR.en[k]||k}
 function upName(i){return LANG==='en'?(UP_EN[i]||UP[i]?.[1]||''):(UP[i]?.[1]||'')}
@@ -1023,9 +1025,14 @@ function update(dt){
     const dx=T.x-e.x,dy=T.y-e.y,d=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);
     let vx,vy;
     const f=dirTo(e),det=f&&f[2]>d*1.5+U*3;if(!det&&(e.k==3||e.k==7||e.k==10||e.k==11||e.k==14)&&d<(e.k==7?U*12:e.k==10?U*9:e.k==11?U*17:e.k==14?U*6.5:U*9)){vx=-Math.cos(ang);vy=-Math.sin(ang)}else if(det||d>(e.k==10?U*13:e.k==13?U*7:e.k==14?U*10:e.k==3?U*11:e.k==7?U*14:e.k==11?U*21:e.k==4||e.k==6?0:U*6)){vx=f?f[0]:Math.cos(ang);vy=f?f[1]:Math.sin(ang)}else{vx=-Math.sin(ang)*e.dir;vy=Math.cos(ang)*e.dir}
+    if(e.k==15){
+      if(e.st2===1||e.st2===3){vx=vy=0}
+      else if(e.st2===2){vx=e.rdx||0;vy=e.rdy||0}
+    }
+    if(e.k==16&&e.st2===1){vx=vy=0}
     if(state!=='play'){vx=vy=0}
-    if(e.k==10&&e.st2>0){vx=0;vy=0}
-    if(e.k==14&&e.hold>0){vx=0;vy=0}
+    if(e.k==10&&e.st2>0){vx=vy=0}
+    if(e.k==14&&e.hold>0){vx=vy=0}
     if(vx||vy){e.a=turn(e.a,Math.atan2(vy,vx),dt*6);const fk=(e.slow>0?.5:1)*(1+wave*.012)*(e.k==14&&e.lamp>0?.6:1);const mdx=vx*e.sp*U*.8*fk*dt,mdy=vy*e.sp*U*.8*fk*dt;if(moveTank(e,mdx,mdy,dt))e.dir*=-1;if(e._stuckTime>.35)unstuckTank(e)}e.slow-=dt;
     for(const o of en)if(o!==e){const ox=e.x-o.x,oy=e.y-o.y,od=Math.hypot(ox,oy),m=e.r+o.r;if(od>0&&od<m){e.x+=ox/od*(m-od)/2;e.y+=oy/od*(m-od)/2}}
     if(!(e.k==14&&e.hold>0))e.t=turn(e.t,ang+(Math.sin(performance.now()/500+e.dir)*.08),dt*4);
@@ -1151,6 +1158,68 @@ function update(dt){
           pushStrike(T.x+Math.cos(ra)*rr,T.y+Math.sin(ra)*rr,RR*.95,1.3+R()*.75,dmg,5,EX,EY,11);
         }
         fx(a.x,a.y,8);e.cool=e.cd+R()*.9;
+      }
+    }
+    else if(e.k==15){
+      e.ramCooldown=(e.ramCooldown==null?5:e.ramCooldown)-dt;
+      if(e.st2===1){
+        e.chargeLeft-=dt;
+        e.t=Math.atan2(e.rdy,e.rdx);
+        if(e.chargeLeft<=0){
+          e.st2=2;e.chargeLeft=1.15;e.ramHit=false;
+          boom(e.x,e.y,18,'#ff6a32',U*5,.3);fx(e.x,e.y,6);shake=Math.max(shake,5);
+        }
+      }else if(e.st2===2){
+        e.t=Math.atan2(e.rdy,e.rdx);
+        if(state==='play'&&!T.dead&&!e.ramHit&&Math.hypot(e.x-T.x,e.y-T.y)<e.r+T.r){
+          e.ramHit=true;
+          hurtP(T,Math.round(36*e.dmgMul));
+          boom(T.x,T.y,28,'#ff8a32',U*7,.45);shake=Math.max(shake,10);
+          e.st2=3;e.chargeLeft=.8;
+        }
+        if(moveTank(e,(e.rdx||0)*e.sp*U*3.8*dt,(e.rdy||0)*e.sp*U*3.8*dt,dt)){
+          e.st2=3;e.chargeLeft=.8;
+          boom(e.x,e.y,24,'#ffb03a',U*6,.4);fx(e.x,e.y,6);shake=Math.max(shake,7);
+        }
+        e.chargeLeft-=dt;
+        if(e.st2===2&&e.chargeLeft<=0){e.st2=3;e.chargeLeft=.7}
+      }else if(e.st2===3){
+        e.chargeLeft-=dt;
+        if(e.chargeLeft<=0){e.st2=0;e.ramCooldown=5.2+R()*1.8}
+      }else if(e.ramCooldown<=0&&state==='play'){
+        const a=Math.atan2(T.y-e.y,T.x-e.x);
+        e.rdx=Math.cos(a);e.rdy=Math.sin(a);e.t=a;e.st2=1;e.chargeLeft=.85;
+        fx(e.x,e.y,6);boom(e.x,e.y,10,'#ff6a32',U*3,.3);
+      }else if(e.cool<=0&&d<U*18&&state==='play'){
+        e.t=Math.atan2(T.y-e.y,T.x-e.x);
+        const dm=Math.round(18*e.dmgMul);
+        shoot(e,0,U*9.2,dm,0,-U*.22);shoot(e,0,U*9.2,dm,0,U*.22);
+        e.cool=1.7+R()*.7;
+      }
+    }
+    else if(e.k==16){
+      e.pulseCd=(e.pulseCd==null?5:e.pulseCd)-dt;
+      if(e.st2===1){
+        e.chargeLeft-=dt;
+        if(e.chargeLeft<=0){
+          const cx=e.rdx||T.x,cy=e.rdy||T.y,RR=U*2.35,dmg=Math.round(29*e.dmgMul);
+          pushStrike(cx,cy,RR,1.05,dmg,8,e.x,e.y,11);
+          for(let q=0;q<2;q++){
+            const aa=R()*6.283,rr=U*(2.2+R()*2.8);
+            pushStrike(cx+Math.cos(aa)*rr,cy+Math.sin(aa)*rr,RR*.78,.9+R()*.35,dmg,8,e.x,e.y,11);
+          }
+          boom(e.x,e.y,22,'#9d72ff',U*5,.35);fx(cx,cy,8);shake=Math.max(shake,4);
+          e.st2=0;e.pulseCd=5.8+R()*1.5;
+        }
+      }else if(e.pulseCd<=0&&state==='play'){
+        e.rdx=Math.max(U,Math.min(W-U,T.x+(R()-.5)*U*2.5));
+        e.rdy=Math.max(U,Math.min(H-U,T.y+(R()-.5)*U*2.5));
+        e.st2=1;e.chargeLeft=1.15;fx(e.rdx,e.rdy,8);
+      }else if(e.cool<=0&&d<U*20&&state==='play'){
+        e.t=Math.atan2(T.y-e.y,T.x-e.x);
+        const dm=Math.round(16*e.dmgMul);
+        shoot(e,0,U*10,dm,-.16);shoot(e,0,U*10,dm,.16);
+        e.cool=1.8+R()*.6;fx(e.x,e.y,9);
       }
     }
     else if(e.k==14){
@@ -1384,6 +1453,24 @@ function drawTank(ctx,u,t,c1,c2,s){
     ctx.strokeStyle='#e85a1a';ctx.lineWidth=1.5;ctx.strokeRect(-l*1.15,-w*.42,l*.42,w*.84);
     ctx.fillStyle='#ffb03a';ctx.fillRect(-l*1.05,-w*.06,l*.22,w*.12);
   }
+  if(t.k==15){
+    const r2=w*.7,p=0.75+.25*Math.sin(performance.now()/90+(t.id||0));
+    ctx.save();ctx.fillStyle='#3a120d';ctx.beginPath();ctx.moveTo(l*1.18,0);ctx.lineTo(l*.35,-w*.72);ctx.lineTo(-l*.3,-w*.72);ctx.lineTo(-l*.95,0);ctx.lineTo(-l*.3,w*.72);ctx.lineTo(l*.35,w*.72);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#ff6a32';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#2a0e0a';ctx.fillRect(-l*.95,-w*.32,l*.6,w*.64);
+    ctx.fillStyle='#ff7a32';ctx.fillRect(l*.52,-w*.18,l*.58,w*.36);
+    ctx.globalAlpha=.45+.35*p;ctx.fillStyle='#ffb03a';ctx.beginPath();ctx.arc(l*1.08,0,r2*.48,0,6.28);ctx.fill();ctx.globalAlpha=1;
+    ctx.restore();
+  }
+  if(t.k==16){
+    const now=performance.now()/1000,cast=t.st2===1;
+    ctx.save();ctx.fillStyle='#20103f';ctx.beginPath();ctx.arc(0,0,w*.56,0,6.28);ctx.fill();
+    ctx.strokeStyle='#9d72ff';ctx.lineWidth=2;
+    for(let q=0;q<3;q++){ctx.beginPath();ctx.arc(0,0,w*(.62+q*.13),q*2.1,q*2.1+4.4);ctx.stroke()}
+    ctx.globalAlpha=cast?.95:.65;ctx.fillStyle='#d9c4ff';ctx.beginPath();ctx.arc(0,0,w*(cast?.24:.15),0,6.28);ctx.fill();ctx.globalAlpha=1;
+    ctx.rotate(now*(cast?3:1.2));ctx.strokeStyle='#cdb6ff';ctx.beginPath();ctx.moveTo(-w*.9,0);ctx.lineTo(w*.9,0);ctx.moveTo(0,-w*.9);ctx.lineTo(0,w*.9);ctx.stroke();
+    ctx.restore();
+  }
   if(t.k==14){
     const lamp=t.lamp==null?2:t.lamp,lt=t.lt||0,hold=t.hold||0,now=performance.now();
     ctx.fillStyle='#0c1a22';ctx.fillRect(-l*.86,-w*.52,l*.34,w*1.04);
@@ -1435,6 +1522,23 @@ function drawTank(ctx,u,t,c1,c2,s){
     ctx.globalAlpha=.55+pl2*.45;ctx.fillStyle='#ffb03a';ctx.beginPath();ctx.arc(l*.92,0,w*.12,0,6.28);ctx.fill();
     ctx.globalAlpha=.25*pl2;ctx.fillStyle='#ff6a1a';ctx.beginPath();ctx.arc(l*.92,0,w*.28,0,6.28);ctx.fill();
     ctx.globalAlpha=1;
+  }
+  if(t.k==15){
+    const charge=t.st2||0,dirx=t.rdx||0,diry=t.rdy||0,now=performance.now();
+    if(charge===1){
+      ctx.save();ctx.strokeStyle='#ff6a32';ctx.lineWidth=3;ctx.globalAlpha=.4+.35*Math.sin(now/90);
+      ctx.setLineDash([10,8]);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(dirx*u*5.5,diry*u*5.5);ctx.stroke();ctx.setLineDash([]);
+      ctx.globalAlpha=.8;ctx.beginPath();ctx.arc(dirx*u*5.5,diry*u*5.5,w*.7,0,6.28);ctx.stroke();ctx.restore();
+    }
+  }
+  if(t.k==16){
+    const charge=t.st2||0,cx=t.rdx||0,cy=t.rdy||0,now=performance.now();
+    if(charge===1){
+      const rx=cx-t.x,ry=cy-t.y;
+      ctx.save();ctx.strokeStyle='#9d72ff';ctx.lineWidth=3;ctx.globalAlpha=.38+.35*Math.sin(now/80);
+      ctx.beginPath();ctx.arc(rx,ry,u*2.35,0,6.28);ctx.stroke();
+      ctx.globalAlpha=.2;ctx.fillStyle='#9d72ff';ctx.beginPath();ctx.arc(rx,ry,u*2.35,0,6.28);ctx.fill();ctx.restore();
+    }
   }
   if(t.k==14){
     const lamp=t.lamp==null?2:t.lamp,lt=t.lt||0,hold=t.hold||0,tfl=t.tfl||0,now=performance.now();
