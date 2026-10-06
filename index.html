@@ -104,7 +104,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.4.0';
+const GAME_VERSION='1.4.1';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -459,7 +459,7 @@ const RARITY_VALS={
   dmg:[.10,.20,.40,.75],rate:[.05,.10,.18,.30],spd:[.05,.10,.18,.30],armor:[10,20,40,75],repair:[25,50,90,150],vamp:[1,2,3,5],
   shield:[.05,.08,.12,.18],splash:[.4,.7,1.2,1.8],regen:[.5,1,2,3.5],luck:[.015,.03,.05,.08],xpm:[.10,.20,.35,.55],
   bs:[.10,.20,.40,.70],crit:[.05,.10,.20,.30],mag:[.5,1,2,3.5],frost:[.8,1.2,1.8,2.5],revhp:[.5,.6,.7,.8],
-  heavyDmg:[.30,.45,.65,.90],heavyRate:[.15,.18,.22,.28]
+  heavyDmg:[.30,.45,.65,.90],heavyRate:[.15,.18,.22,.28],ric:[1,1,2,3]
 };
 const UP=[
 ['🔫','Мощный снаряд',r=>'+'+Math.round(RARITY_VALS.dmg[r]*100)+'% урона',(p,r)=>p.dmg*=1+RARITY_VALS.dmg[r]],
@@ -468,7 +468,7 @@ const UP=[
 ['🧱','Усиленная броня',r=>'+'+RARITY_VALS.armor[r]+' макс. HP и лечение',(p,r)=>{p.max+=RARITY_VALS.armor[r];p.hp+=RARITY_VALS.armor[r]}],
 ['🔧','Ремонт',r=>'Лечит '+RARITY_VALS.repair[r]+' HP',(p,r)=>p.hp=Math.min(p.max,p.hp+RARITY_VALS.repair[r])],
 ['✴️','Залп','+1 снаряд',(p,r)=>p.multi=Math.min(4,p.multi+1),p=>p.multi<4],
-['↪️','Рикошет','+1 отскок от стен',(p,r)=>p.ricochet=Math.min(5,p.ricochet+1),p=>p.ricochet<5],
+['↪️','Рикошет',r=>'+'+RARITY_VALS.ric[r]+' отскок от стен',(p,r)=>p.ricochet=Math.min(5,p.ricochet+RARITY_VALS.ric[r]),p=>p.ricochet<5,1],
 ['🎯','Бронебойные','Снаряды пробивают +1 врага',(p,r)=>p.pierce++],
 ['🩸','Вампиризм',r=>'+'+RARITY_VALS.vamp[r]+' HP за убийство',(p,r)=>p.vamp+=RARITY_VALS.vamp[r]],
 ['🛡️','Экран',r=>'−'+Math.round(RARITY_VALS.shield[r]*100)+'% получаемого урона',(p,r)=>p.armor=Math.min(.6,p.armor+RARITY_VALS.shield[r]),p=>p.armor<.6],
@@ -595,7 +595,7 @@ function cards(){
   const c=$('cd');c.innerHTML='<h2>'+t('level')+' '+p.lvl+'</h2><p>'+t('levelPick')+'</p>';
   const pool=UP.map((u,i)=>({u,i})).filter(x=>upAvailable(x.i,p)).sort(()=>R()-.5).slice(0,3);
   for(const pick of pool){
-    const u=pick.u,i=pick.i,r=rollRarity(),b=document.createElement('button');
+    const u=pick.u,i=pick.i,r=upRarity(i),b=document.createElement('button');
     b.className='cr '+RARITIES[r].cls;
     b.innerHTML='<span>'+u[0]+'</span><div><em class="rr">'+rarityName(r)+'</em><b>'+upName(i)+'</b><i>'+upDesc(i,r)+'</i></div>';
     b.onclick=()=>{u[3](p,r);if(online&&role==='guest')relay('host',{k:'up',i,r});c.style.display='none';if(online){ovl=false;p.ch=false}else state='play'};
@@ -702,8 +702,8 @@ function moveTank(o,dx,dy){
   return 0;
 }
 function turn(a,b,k){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return a+d*Math.min(1,k)}
-function shoot(o,own,sp,dmg,off=0){const a=o.t+off;
-  bl.push({x:o.x+Math.cos(a)*U*1.1,y:o.y+Math.sin(a)*U*1.1,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,own,dmg,l:1.6,pc:own?(o.pierce||0):0,ric:own?(o.ricochet||0):0,h:[],o:own?o:null});
+function shoot(o,own,sp,dmg,off=0,side=0){const a=o.t+off,nx=-Math.sin(a),ny=Math.cos(a);const sx=o.x+Math.cos(a)*U*1.1+nx*side,sy=o.y+Math.sin(a)*U*1.1+ny*side;
+  bl.push({x:sx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,own,dmg,l:1.6,pc:own?(o.pierce||0):0,ric:own?(o.ricochet||0):0,h:[],o:own?o:null});
   for(let i=0;i<4;i++)boom(o.x+Math.cos(o.t)*U*1.2,o.y+Math.sin(o.t)*U*1.2,1,'#ffd76a',U*3,.25);
   if(own){if(o===P)sfxAt('shoot',o.x,o.y,{vol:.5,pitch:.95+R()*.12})}else sfxAt('shoot',o.x,o.y,{vol:.5,pitch:.95+R()*.12})}
 function boom(x,y,n,c,sp,life){for(let i=0;i<n;i++){const a=R()*6.28,v=R()*sp;pt.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:life*(.5+R()),m:life,c,s:U*(.08+R()*.14)})}}
@@ -753,7 +753,7 @@ const UP_DESC_EN=[
   r=>'+'+RARITY_VALS.armor[r]+' max HP and healing',
   r=>'Heals '+RARITY_VALS.repair[r]+' HP',
   ()=>'+1 shell (max 4)',
-  ()=>'+1 wall bounce (max 5)',
+  r=>'+'+RARITY_VALS.ric[r]+' wall bounce (max 5)',
   ()=>'+1 enemy pierce',
   r=>'+'+RARITY_VALS.vamp[r]+' HP per kill',
   r=>'−'+Math.round(RARITY_VALS.shield[r]*100)+'% damage taken',
@@ -777,6 +777,7 @@ function upName(i){return LANG==='en'?(UP_EN[i]||UP[i]?.[1]||''):(UP[i]?.[1]||''
 function upDesc(i,r=0){const v=LANG==='en'?UP_DESC_EN[i]:UP[i]?.[2];return typeof v==='function'?v(r):(v||'')}
 function rarityName(r){const q=RARITIES[r]||RARITIES[0];return LANG==='en'?q.en:q.ru}
 function rollRarity(){const x=R();return x<.55?0:x<.85?1:x<.97?2:3}
+function upRarity(i){const u=UP[i],min=u?.[5]||0;return Math.max(min,rollRarity())}
 function upAvailable(i,p){const u=UP[i];return !u?.[4]||u[4](p)}
 function tankName(id){return LANG==='en'?(TANK_EN[id]?.[0]||id):(TANKS.find(x=>x.id===id)?.name||id)}
 function tankPerk(id){return LANG==='en'?(TANK_EN[id]?.[1]||''):(TANKS.find(x=>x.id===id)?.perk||'')}
@@ -962,7 +963,7 @@ function update(dt){
   if(state==='play'){
     for(const p of PL){if(p.dead)continue;
       if(p!==P){p.stun=Math.max(0,(p.stun||0)-dt);p.stunImm=Math.max(0,(p.stunImm||0)-dt)}
-      if(p.fire&&p.cd<=0&&!p.ch&&!(p.stun>0)){const n=p.multi+(buffs.multi?2:0);for(let i=0;i<n;i++)shoot(p,1,U*17*p.bs,p.dmg*(buffs.dmg?2:1),(i-(n-1)/2)*.16);p.cd=p.rate/(buffs.rate?1.6:1);if(p===P)shake=2}
+      if(p.fire&&p.cd<=0&&!p.ch&&!(p.stun>0)){const n=p.multi+(buffs.multi?2:0);for(let i=0;i<n;i++)shoot(p,1,U*17*p.bs,p.dmg*(buffs.dmg?2:1),0,(i-(n-1)/2)*U*.22);p.cd=p.rate/(buffs.rate?1.6:1);if(p===P)shake=2}
       p.cd-=dt;p.hp=Math.min(p.max,p.hp+p.regen*dt)}
     if(rest>0){rest-=dt;if(rest<=0){spawnQ=Math.round((3+wave*2)*(1+(PL.length-1)*.6));boss=wave%5==0;banner(t('wave')+' '+wave,boss?'⚠ '+(LANG==='en'?'BOSS!':'БОСС!')+' ⚠':t('waveStart'));if(boss)sfx('gameover',{vol:.5,pitch:.55});else sfx('wave',{vol:.5})}}
     else{for(const k in buffs){buffs[k]-=dt;if(buffs[k]<=0)delete buffs[k]}spT-=dt;if(spawnQ>0&&spT<=0&&en.length<Math.min(10,5+wave)+(PL.length-1)*3){spawn();spawnQ--;spT=1.1}}
