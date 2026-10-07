@@ -31,8 +31,8 @@ jobs:
           rm -rf android-app/app/src/main/assets
           mkdir -p android-app/app/src/main/assets/www
           cp index.html android-app/app/src/main/assets/www/index.html
-          cp -r PackMusic android-app/app/src/main/assets/
-          cp -r PackSFXTanks android-app/app/src/main/assets/
+          cp -r PackMusic android-app/app/src/main/assets/www/
+          cp -r PackSFXTanks android-app/app/src/main/assets/www/
 
       - name: Build debug APK
         working-directory: android-app
