@@ -421,6 +421,21 @@ function sfx(n,o={}){
   if(c.createStereoPanner&&o.pan){const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));ss.connect(p);p.connect(g)}else ss.connect(g);
   g.connect(c.destination);try{ss.start()}catch(e){}
 }
+const MUSIC={fileNames:['menu.mp3','battle.mp3','battle2.mp3'],byBase:{},cur:null,curName:'',playing:false,vol:.35,unlocked:false};
+function musicEl(url){const a=new Audio();a.loop=true;a.preload='auto';a.src=url;a.volume=0;return a}
+function musicEnsure(n){if(MUSIC.byBase[n])return MUSIC.byBase[n];const files=MUSIC.fileNames.filter(f=>baseName(f)===n);if(!files.length)return null;
+  const arr=files.map(f=>musicEl('PackMusic/'+f));arr.forEach(a=>{try{a.load()}catch(e){}});MUSIC.byBase[n]=arr;return arr}
+function musicPlay(n){
+  if(!sndAllowed()||!MUSIC.fileNames.length)return;
+  const old=MUSIC.cur,oldName=MUSIC.curName;
+  if(oldName===n&&old&&!old.paused){try{old.volume=Math.min(MUSIC.vol,old.volume+.05)}catch(e){}return}
+  const arr=musicEnsure(n);if(!arr){return}
+  if(old){try{old.pause();old.currentTime=0}catch(e){}}
+  const el=arr[(R()*arr.length)|0];MUSIC.cur=el;MUSIC.curName=n;
+  try{el.volume=MUSIC.vol;const p=el.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}
+}
+function musicStop(){if(MUSIC.cur){try{MUSIC.cur.pause()}catch(e){}MUSIC.cur=null;MUSIC.curName=''}}
+function musicSync(){if(!MUSIC.unlocked)return;if(state==='menu')musicPlay('menu');else if(state==='play')musicPlay('battle');else if(state==='over')musicStop()}
 async function loadMusicPack(){
   try{
     let list=[];
