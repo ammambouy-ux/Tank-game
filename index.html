@@ -756,7 +756,7 @@ function shoot(o,own,sp,dmg,off=0,side=0,bid=0){const a=o.t+off,nx=-Math.sin(a),
   bl.push({x:sx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,own,dmg,l:1.6,pc:own?(o.pierce||0):0,ric:own?(o.ricochet||0):0,h:[],o:own?o:null,id:bid,oid:bid?o.id:0});
   for(let i=0;i<4;i++)boom(o.x+Math.cos(o.t)*U*1.2,o.y+Math.sin(o.t)*U*1.2,1,'#ffd76a',U*3,.25);
   if(own){if(o===P)sfxAt('shoot',o.x,o.y,{vol:.5,pitch:.95+R()*.12})}else sfxAt('shoot',o.x,o.y,{vol:.5,pitch:.95+R()*.12})}
-function boom(x,y,n,c,sp,life,layer='top'){for(let i=0;i<n;i++){const a=R()*6.28,v=R()*sp;pt.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:life*(.5+R()),m:life,c,s:U*(.08+R()*.14),layer})}}}
+function boom(x,y,n,c,sp,life,layer='top'){for(let i=0;i<n;i++){const a=R()*6.28,v=R()*sp;pt.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:life*(.5+R()),m:life,c,s:U*(.08+R()*.14),layer})}}
 function hurtP(p,d){if(p.ch||p.dead)return;d*=(1-p.armor)*(buffs.shield?.4:1);p.hp-=d;if(p===P){shake=8;sfx('playerhit',{vol:Math.min(.9,.35+d/40),pitch:.95+R()*.12});try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}}else sfxAt('playerhit',p.x,p.y,{vol:.3})
   if(p.hp<=0){if(p.rev>0){p.rev--;p.hp=p.max*(p.revhp||.5);boom(p.x,p.y,40,'#7dff8a',U*8,.8);if(p===P){banner('ВТОРОЕ ДЫХАНИЕ','');sfx('revive',{vol:.8})}}
   else{p.hp=0;p.dead=true;boom(p.x,p.y,50,'#ff8a3a',U*9,.9);fx(p.x,p.y,4);if(p===P||PL.every(q=>q.dead))sfx(p===P?'explode':'boom',{vol:.8,pitch:.8});
