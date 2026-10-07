@@ -257,7 +257,7 @@ public class MainActivity extends Activity {
         updateDialogVisible = true;
         new AlertDialog.Builder(this)
                 .setTitle("Доступно обновление")
-                .setMessage("Установлена версия " + BuildConfig.VERSION_NAME
+                .setMessage("Установлена версия " + getInstalledVersion()
                         + ". Доступна новая версия " + release.version
                         + ".\n\nОбновить сейчас или сделать это позже?")
                 .setNegativeButton("Позже", (d, w) -> {
