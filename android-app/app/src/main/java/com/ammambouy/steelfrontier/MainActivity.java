@@ -173,7 +173,7 @@ public class MainActivity extends Activity {
 
                 String localHash = sha256(local);
                 String dismissed = prefs.getString("dismissed_hash", "");
-                if (!remote.hash.equalsIgnoreCase(localHash) && !remote.hash.equals(dismissed)) {
+                if (!isNewerVersion(remote.version, getInstalledVersion()) && !remote.hash.equalsIgnoreCase(localHash) && !remote.hash.equals(dismissed)) {
                     runOnUiThread(() -> showUpdateDialog(remote));
                 }
             } catch (Exception ignored) {
@@ -182,12 +182,21 @@ public class MainActivity extends Activity {
         });
     }
 
+    private String getInstalledVersion() {
+        try {
+            android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return info.versionName == null ? "0.0.0" : info.versionName;
+        } catch (Exception e) {
+            return "0.0.0";
+        }
+    }
+
     private void checkForApkUpdate() {
         if (!hasNetwork() || updateDialogVisible) return;
         io.execute(() -> {
             try {
                 ApkRelease release = fetchLatestRelease();
-                if (!isNewerVersion(release.version, BuildConfig.VERSION_NAME)) return;
+                if (!isNewerVersion(release.version, getInstalledVersion())) return;
                 String dismissed = prefs.getString("dismissed_apk_version", "");
                 if (release.version.equals(dismissed)) return;
                 runOnUiThread(() -> showApkUpdateDialog(release));
