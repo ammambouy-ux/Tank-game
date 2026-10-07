@@ -112,7 +112,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="ld"><div class="box"><b id="ldt">Загрузка…</b><span>•••</span></div></div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.4.7';
+const GAME_VERSION='1.4.8';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -343,10 +343,14 @@ const SND={};
 for(const k in SNDDEF){const o=SNDDEF[k]||{};SND[k]=[o.vol==null?1:o.vol,o.rnd==null?.05:o.rnd,o.freq==null?220:o.freq,o.atk||0,o.sus||0,o.rel==null?.1:o.rel,o.shp||0,o.shc==null?1:o.shc,o.sli||0,o.dsl||0,o.pj||0,o.pjt||0,o.rt||0,o.noi||0,o.mod||0,o.bc||0,o.del||0,o.sv==null?1:o.sv,o.dec||0,o.trem||0,o.flt||0]}
 const SNDB={};
 function sndBuf(n){let b=SNDB[n];if(b)return b;const c=audioInit();if(!c||!SND[n])return null;const arr=zzfxSamples(...SND[n]);b=c.createBuffer(1,arr.length,44100);b.getChannelData(0).set(arr);SNDB[n]=b;return b}
+const PACK_SFX_FILES=['boom1.mp3','boom2.mp3','boom3.mp3','explode1.wav','shoot1.mp3','shoot2.mp3','stun1.wav','tesla1.mp3'];
+const PACK_SFX_NAMES=['boom','explode','shoot','stun','tesla'];
 const SFX_MP3={};const SFX_HTML={};
 let sfxPackLoading=false,sfxPackDone=false;
 const AUDIO_EXT=/\.(mp3|wav|ogg)$/i;
 const baseName=f=>String(f).replace(AUDIO_EXT,'').replace(/\d+$/,'').toLowerCase();
+function packSfxReady(){return PACK_SFX_NAMES.every(n=>(SFX_MP3[n]&&SFX_MP3[n].length)||(SFX_HTML[n]&&SFX_HTML[n].length))}
+function packSfxUrl(f){return /^https?:$/.test(location.protocol)?'/PackSFXTanks/'+encodeURIComponent(f):'PackSFXTanks/'+f}
 function decodeAudio(c,ab){return new Promise(res=>{try{c.decodeAudioData(ab,res,()=>res(null))}catch(e){res(null)}})}
 async function loadMp3Group(c,name,urls){
   const out=[];
@@ -365,74 +369,58 @@ function tryHtml(name,url){return new Promise(res=>{
   setTimeout(no,4000);
 })}
 function playHtml(n,o){const a=SFX_HTML[n];if(!a||!a.length)return false;
-  const src=a[(R()*a.length)|0];try{const el=src.cloneNode();el.volume=Math.max(0,Math.min(1,(o.vol!=null?o.vol:1)*AUDIO_V));el.playbackRate=1+(R()-.5)*.05;el.play().catch(()=>{});return true}catch(e){return false}}
+  const src=a[(R()*a.length)|0];try{const el=src.cloneNode();el.volume=Math.max(0,Math.min(1,(o.vol!=null?o.vol:1)*AUDIO_V));el.playbackRate=o.pitch!=null?o.pitch:1+(R()-.5)*.05;el.play().catch(()=>{});return true}catch(e){return false}}
 async function loadSfxPack(){
-  if(sfxPackLoading||sfxPackDone)return;sfxPackLoading=true;
-  const c=audioInit();
+  if(sfxPackLoading)return;
+  if(packSfxReady()){sfxPackDone=true;return}
+  sfxPackLoading=true;
   try{
-    // CrazyGames still runs the game from our Render origin, so the SFX
-    // manifest is available there too. Do not skip it when CG.on is true.
+    const c=audioInit();
+    const files=new Set(PACK_SFX_FILES);
     if(/^https?:$/.test(location.protocol)){
       try{
-        const r=await fetch('api/sfx',{cache:'no-store'});
+        const r=await fetch('/api/sfx',{cache:'no-store'});
         if(r.ok){
           const list=await r.json();
-          const files=Array.isArray(list)?list.filter(f=>AUDIO_EXT.test(f)):[];
-          const g={};
-          for(const f of files){
-            const b=baseName(f);
-            if(SNDDEF[b]){(g[b]=g[b]||[]).push('PackSFXTanks/'+f)}
-          }
-          // Low-latency WebAudio path.
-          if(c)await Promise.all(Object.entries(g).map(([n,u])=>loadMp3Group(c,n,u)));
-          // HTMLAudio fallback for CrazyGames iframe audio policies.
-          if(CG.on)await Promise.all(files.map(f=>tryHtml(baseName(f),'PackSFXTanks/'+f)));
+          if(Array.isArray(list))for(const f of list)if(AUDIO_EXT.test(f))files.add(String(f));
         }
       }catch(e){}
     }
-  }catch(e){}
-  if(!Object.keys(SFX_MP3).length&&!Object.keys(SFX_HTML).length){
-    const bases=Object.keys(SNDDEF);
-    const cands=['PackSFXTanks/','../PackSFXTanks/','../../PackSFXTanks/'];
-    await Promise.all(bases.map(async n=>{for(const pre of cands){for(const ext of ['.mp3','.wav','.ogg'])if(await tryHtml(n,pre+n+ext))return}}));
+    const groups={};
+    for(const f0 of files){
+      const f=String(f0).replace(/^\/+/,''),name=baseName(f);
+      if(SNDDEF[name]) (groups[name]??=[]).push(packSfxUrl(f));
+    }
+    await Promise.all(Object.entries(groups).map(async([name,urls])=>{
+      if(c&&!SFX_MP3[name]?.length)await loadMp3Group(c,name,urls);
+      if(!SFX_MP3[name]?.length||CG.on)await Promise.all(urls.map(u=>tryHtml(name,u)));
+    }));
+    sfxPackDone=packSfxReady();
+  }catch(e){
+    sfxPackDone=false;
+  }finally{
+    sfxPackLoading=false;
   }
-  sfxPackLoading=false;sfxPackDone=true;
 }
 function pickMp3(n){const a=SFX_MP3[n];if(!a||!a.length)return null;return a[(R()*a.length)|0]}
 function sfx(n,o={}){
   if(!sndAllowed())return;const c=audioInit();
   if(c&&c.state==='suspended'){try{c.resume()}catch(e){}}
-  // Prefer HTMLAudio inside CrazyGames; use WebAudio elsewhere.
   if(CG.on&&playHtml(n,o))return;
   const mp=c?pickMp3(n):null;
-  if(mp&&c){const s=c.createBufferSource();s.buffer=mp;s.playbackRate.value=1+(R()-.5)*.06;
+  if(mp&&c){const ss=c.createBufferSource();ss.buffer=mp;ss.playbackRate.value=o.pitch!=null?o.pitch:1;
     const g=c.createGain();g.gain.value=(o.vol!=null?o.vol:1)*AUDIO_V;
-    if(c.createStereoPanner&&o.pan){const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));s.connect(p);p.connect(g)}else s.connect(g);
-    g.connect(c.destination);try{s.start()}catch(e){}return;
+    if(c.createStereoPanner&&o.pan){const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));ss.connect(p);p.connect(g)}else ss.connect(g);
+    g.connect(c.destination);try{ss.start()}catch(e){}return;
   }
   if(!mp&&playHtml(n,o))return;
   if(!c)return;
   const buf=sndBuf(n);if(!buf)return;
-  const s=c.createBufferSource();s.buffer=buf;s.playbackRate.value=o.pitch!=null?o.pitch:1;
+  const ss=c.createBufferSource();ss.buffer=buf;ss.playbackRate.value=o.pitch!=null?o.pitch:1;
   const g=c.createGain();g.gain.value=(o.vol!=null?o.vol:1)*AUDIO_V;
-  if(c.createStereoPanner&&o.pan){const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));s.connect(p);p.connect(g)}else s.connect(g);
-  g.connect(c.destination);try{s.start()}catch(e){}
+  if(c.createStereoPanner&&o.pan){const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));ss.connect(p);p.connect(g)}else ss.connect(g);
+  g.connect(c.destination);try{ss.start()}catch(e){}
 }
-const MUSIC={fileNames:['menu.mp3','battle.mp3','battle2.mp3'],byBase:{},cur:null,curName:'',playing:false,vol:.35,unlocked:false};
-function musicEl(url){const a=new Audio();a.loop=true;a.preload='auto';a.src=url;a.volume=0;return a}
-function musicEnsure(n){if(MUSIC.byBase[n])return MUSIC.byBase[n];const files=MUSIC.fileNames.filter(f=>baseName(f)===n);if(!files.length)return null;
-  const arr=files.map(f=>musicEl('PackMusic/'+f));arr.forEach(a=>{try{a.load()}catch(e){}});MUSIC.byBase[n]=arr;return arr}
-function musicPlay(n){
-  if(!sndAllowed()||!MUSIC.fileNames.length)return;
-  const old=MUSIC.cur,oldName=MUSIC.curName;
-  if(oldName===n&&old&&!old.paused){try{old.volume=Math.min(MUSIC.vol,old.volume+.05)}catch(e){}return}
-  const arr=musicEnsure(n);if(!arr){return}
-  if(old){try{old.pause();old.currentTime=0}catch(e){}}
-  const el=arr[(R()*arr.length)|0];MUSIC.cur=el;MUSIC.curName=n;
-  try{el.volume=MUSIC.vol;const p=el.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}
-}
-function musicStop(){if(MUSIC.cur){try{MUSIC.cur.pause()}catch(e){}MUSIC.cur=null;MUSIC.curName=''}}
-function musicSync(){if(!MUSIC.unlocked)return;if(state==='menu')musicPlay('menu');else if(state==='play')musicPlay('battle');else if(state==='over')musicStop()}
 async function loadMusicPack(){
   try{
     let list=[];
@@ -518,7 +506,7 @@ const BF_EN={dmg:'Double Damage',rate:'Fire Rate',spd:'Speed Boost',shield:'Shie
 function bfName(k){return LANG==='en'?(BF_EN[k]||k):(BF[k]?.[1]||k)}
 function showBanner(a,b){a=trText(a);b=trText(b||'');const e=$('bn');e.innerHTML=`<b>${a}</b><i>${b}</i>`;e.className='';void e.offsetWidth;e.className='show'}
 function banner(a,b){showBanner(a,b);if(online&&role==='host'&&bq.length<6)bq.push([a,b||''])}
-function mkP(tk){const eq=TANKS.find(x=>x.id===tk)||TANKS[0],m=eq.mod,p={id:0,name:'',slot:0,tk:eq.id,c1:eq.c1,c2:eq.c2,x:W/2,y:H/2,a:-Math.PI/2,t:-Math.PI/2,hp:100,max:100,cd:0,r:U*.75,xp:0,lvl:1,need:30,pend:0,dmg:1,rate:.33,spd:1,multi:1,pierce:0,ricochet:0,vamp:0,armor:0,regen:0,splash:0,luck:0,xpm:1,bs:1,crit:0,mag:0,frost:0,rev:0,revhp:.5,fire:false,ch:false,dead:false,shotSeq:0,ackSeq:0,tok:3,tokT:0};
+function mkP(tk){const eq=TANKS.find(x=>x.id===tk)||TANKS[0],m=eq.mod,p={id:0,name:'',slot:0,tk:eq.id,c1:eq.c1,c2:eq.c2,x:W/2,y:H/2,a:-Math.PI/2,t:-Math.PI/2,hp:100,max:100,cd:0,r:U*.75,xp:0,lvl:1,need:30,pend:0,dmg:1,rate:.33,spd:1,multi:1,pierce:0,ricochet:0,vamp:0,armor:0,regen:0,splash:0,luck:0,xpm:1,bs:1,crit:0,mag:0,frost:0,rev:0,revhp:.5,fire:false,ch:false,dead:false,shotSeq:0,ackSeq:0,vq:[],tok:3,tokT:0};
   if(m.spd)p.spd*=m.spd;if(m.dmg)p.dmg*=m.dmg;if(m.armor)p.armor=Math.min(.6,p.armor+m.armor);if(m.max){p.max+=m.max;p.hp+=m.max}return p}
 function grid(){GG=U*1.6;GC=Math.floor(W/GG);GR=Math.floor(H/GG);GX=(W-GC*GG)/2;GY=(H-GR*GG)/2}
 function nearP(x,y){let b=null,bd=1e18;for(const p of PL){if(p.dead)continue;const d=(p.x-x)*(p.x-x)+(p.y-y)*(p.y-y);if(d<bd){bd=d;b=p}}return b}
@@ -752,14 +740,38 @@ function unstuckTank(o){
 }
 function turn(a,b,k){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return a+d*Math.min(1,k)}
 // bid — сетевой ID пули игрока (seq*64+i); 0 — у остальных пуль. Ключ пули в снапшоте: oid*2^32+id.
-function shoot(o,own,sp,dmg,off=0,side=0,bid=0){const a=o.t+off,nx=-Math.sin(a),ny=Math.cos(a);const sx=o.x+Math.cos(a)*U*1.1+nx*side,sy=o.y+Math.sin(a)*U*1.1+ny*side;
+function shoot(o,own,sp,dmg,off=0,side=0,bid=0,originX=null,originY=null){const a=o.t+off,nx=-Math.sin(a),ny=Math.cos(a);const bx=originX==null?o.x:originX,by=originY==null?o.y:originY,sx=bx+Math.cos(a)*U*1.1+nx*side,sy=by+Math.sin(a)*U*1.1+ny*side;
   bl.push({x:sx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,own,dmg,l:1.6,pc:own?(o.pierce||0):0,ric:own?(o.ricochet||0):0,h:[],o:own?o:null,id:bid,oid:bid?o.id:0});
-  for(let i=0;i<4;i++)boom(o.x+Math.cos(o.t)*U*1.2,o.y+Math.sin(o.t)*U*1.2,1,'#ffd76a',U*3,.25);
-  if(own){if(o===P)sfxAt('shoot',o.x,o.y,{vol:.5,pitch:.95+R()*.12})}else sfxAt('shoot',o.x,o.y,{vol:.5,pitch:.95+R()*.12})}
+  for(let i=0;i<4;i++)boom(bx+Math.cos(a)*U*1.2,by+Math.sin(a)*U*1.2,1,'#ffd76a',U*3,.25);
+  if(own){if(o===P)sfxAt('shoot',bx,by,{vol:.5,pitch:.95+R()*.12})}else sfxAt('shoot',bx,by,{vol:.5,pitch:.95+R()*.12})}
+function spawnVolleyShot(o,q){
+  const old=o.t;o.t=q.a;
+  shoot(o,1,q.sp,q.dmg,0,0,q.bid,q.ox,q.oy);
+  o.t=old;
+  const b=bl[bl.length-1];
+  if(q.pred&&b){b.pred=1;b.seq=q.seq}
+}
+function startVolley(o,n,sp,dmg,bidBase=0,pred=false){
+  n=Math.max(1,n|0);
+  const a=o.t,ox=o.x,oy=o.y;
+  const q=o.vq||(o.vq=[]);
+  spawnVolleyShot(o,{a,sp,dmg,bid:bidBase,pred,seq:bidBase?Math.floor(bidBase/64):0,ox,oy});
+  for(let i=1;i<n;i++)q.push({delay:i*.1,a,sp,dmg,bid:bidBase?bidBase+i:0,pred,seq:bidBase?Math.floor(bidBase/64):0,ox,oy});
+}
+function tickVolley(o,dt){
+  if(!o.vq?.length)return;
+  if(o.dead||o.ch){o.vq.length=0;return}
+  for(const q of o.vq)q.delay-=dt;
+  while(o.vq.length&&o.vq[0].delay<=0)spawnVolleyShot(o,o.vq.shift());
+}
+function playerVolley(o,bidBase=0,pred=false){
+  startVolley(o,o.multi+(buffs.multi?2:0),U*17*o.bs,o.dmg*(buffs.dmg?2:1),bidBase,pred);
+}
+
 function boom(x,y,n,c,sp,life,layer='top'){for(let i=0;i<n;i++){const a=R()*6.28,v=R()*sp;pt.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:life*(.5+R()),m:life,c,s:U*(.08+R()*.14),layer})}}
 function hurtP(p,d){if(p.ch||p.dead)return;d*=(1-p.armor)*(buffs.shield?.4:1);p.hp-=d;if(p===P){shake=8;sfx('playerhit',{vol:Math.min(.9,.35+d/40),pitch:.95+R()*.12});try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}}else sfxAt('playerhit',p.x,p.y,{vol:.3})
   if(p.hp<=0){if(p.rev>0){p.rev--;p.hp=p.max*(p.revhp||.5);boom(p.x,p.y,40,'#7dff8a',U*8,.8);if(p===P){banner('ВТОРОЕ ДЫХАНИЕ','');sfx('revive',{vol:.8})}}
-  else{p.hp=0;p.dead=true;boom(p.x,p.y,50,'#ff8a3a',U*9,.9);fx(p.x,p.y,4);if(p===P||PL.every(q=>q.dead))sfx(p===P?'explode':'boom',{vol:.8,pitch:.8});
+  else{p.hp=0;p.dead=true;if(p.vq)p.vq.length=0;boom(p.x,p.y,50,'#ff8a3a',U*9,.9);fx(p.x,p.y,4);if(p===P||PL.every(q=>q.dead))sfx(p===P?'explode':'boom',{vol:.8,pitch:.8});
     if(p===P)onLocalDeath();
     else if(online&&role==='host'&&PL.every(q=>q.dead))over()}}}
 function zap(c,x1,y1,x2,y2,seg,jit,col,lw){
@@ -1027,7 +1039,7 @@ function update(dt){
   if(state==='play'){
     for(const p of PL){if(p.dead)continue;
       if(p!==P){p.stun=Math.max(0,(p.stun||0)-dt);p.stunImm=Math.max(0,(p.stunImm||0)-dt)}
-      if(p.fire&&p.cd<=0&&!p.ch&&!(p.stun>0)&&(p===P||!online)){const n=p.multi+(buffs.multi?2:0);for(let i=0;i<n;i++)shoot(p,1,U*17*p.bs,p.dmg*(buffs.dmg?2:1),0,(i-(n-1)/2)*U*.22);p.cd=p.rate/(buffs.rate?1.6:1);if(p===P)shake=2}
+      tickVolley(p,dt);if(p.fire&&p.cd<=0&&!p.ch&&!(p.stun>0)&&(p===P||!online)){playerVolley(p);p.cd=p.rate/(buffs.rate?1.6:1);if(p===P)shake=2}
       p.cd-=dt;p.hp=Math.min(p.max,p.hp+p.regen*dt)}
     if(rest>0){rest-=dt;if(rest<=0){spawnQ=Math.round((3+wave*2)*(1+(PL.length-1)*.6));boss=wave%5==0;banner(t('wave')+' '+wave,boss?'⚠ '+(LANG==='en'?'BOSS!':'БОСС!')+' ⚠':t('waveStart'));if(boss)sfx('gameover',{vol:.5,pitch:.55});else sfx('wave',{vol:.5})}}
     else{for(const k in buffs){buffs[k]-=dt;if(buffs[k]<=0)delete buffs[k]}spT-=dt;if(spawnQ>0&&spT<=0&&en.length<Math.min(10,5+wave)+(PL.length-1)*3){spawn();spawnQ--;spT=1.1}}
@@ -1341,10 +1353,11 @@ function ghostStep(b,dt){
 }
 function guestUpdate(dt){
   ctrl(dt);
+  tickVolley(P,dt);
   P.cd-=dt;
   if(P.fire&&!P.dead&&!P.ch&&P.stun<=0&&P.cd<=0){
-    const n=P.multi+(buffs.multi?2:0),s=++P.shotSeq;
-    for(let i=0;i<n;i++){shoot(P,1,U*17*P.bs,P.dmg*(buffs.dmg?2:1),0,(i-(n-1)/2)*U*.22,s*64+i);const g=bl[bl.length-1];g.pred=1;g.seq=s}
+    const s=++P.shotSeq;
+    playerVolley(P,s*64,true);
     P.cd=P.rate/(buffs.rate?1.6:1);
     relay('host',{k:'shot',s,t:Math.round(P.t*1000)/1000,x:Math.round(P.x),y:Math.round(P.y)});
   }
@@ -2063,15 +2076,12 @@ function onRelay(from,d){
           p.t=a;
           const x=Number(d.x),y=Number(d.y);
           if(Number.isFinite(x)&&Number.isFinite(y)&&Math.hypot(x-p.x,y-p.y)<U*8){p.x=x;p.y=y}
-          const n=p.multi+(buffs.multi?2:0);
-          for(let i=0;i<n;i++)shoot(p,1,U*17*p.bs,p.dmg*(buffs.dmg?2:1),0,(i-(n-1)/2)*U*.22,s*64+i);
+          playerVolley(p,s*64,false);
         }
       }else if(p&&d.s==null&&Number.isFinite(a)&&state==='play'&&!p.dead&&!p.ch&&p.stun<=0&&p.cd<=0){
         // Старый клиент (1.4.6 и ниже) без seq: прежнее поведение.
         p.t=a;
-        const n=p.multi+(buffs.multi?2:0);
-        for(let i=0;i<n;i++)shoot(p,1,U*17*p.bs,p.dmg*(buffs.dmg?2:1),0,(i-(n-1)/2)*U*.22);
-        p.cd=p.rate/(buffs.rate?1.6:1);
+        playerVolley(p);p.cd=p.rate/(buffs.rate?1.6:1);
       }
     }
     else if(d.k==='up'){const p=PL.find(q=>q.id===from),u=UP[d.i];if(p&&u){u[3](p,d.r|0);p.ch=false}}
