@@ -8,8 +8,7 @@ const adminSessions = new Map();
 const ADMIN_SESSION_MS = 8 * 60 * 60 * 1000;
 const INDEX = path.join(__dirname, 'index.html');
 const ADMIN_HTML = path.join(__dirname, 'admin.html');
-const APK_LATEST = path.join(__dirname, 'apk', 'latest.json');
-const GAME_VERSION = (() => { try { const m = fs.readFileSync(INDEX, 'utf8').match(/const GAME_VERSION='([^']+)'/); return m ? m[1] : '0.0.0'; } catch (e) { return '0.0.0'; } })();
+const GAME_VERSION = '1.3.0';
 const SFX_DIR = path.join(__dirname, 'PackSFXTanks');
 const MUSIC_DIR = path.join(__dirname, 'PackMusic');
 const AUDIO_RE = /\.(mp3|wav|ogg)$/i;
@@ -135,13 +134,6 @@ const server = http.createServer(async (req, res) => {
   }
   if (sfxUrl === '/api/music' && req.method === 'GET') {
     fs.readdir(MUSIC_DIR, (e, files) => sendJson(res, 200, e ? [] : files.filter(f => AUDIO_RE.test(f))));
-    return;
-  }
-  if (sfxUrl === '/api/apk/version' && req.method === 'GET') {
-    fs.readFile(APK_LATEST, 'utf8', (e, data) => {
-      if (e) return sendJson(res, 404, { ok:false, error:'APK manifest not found' });
-      try { return sendJson(res, 200, JSON.parse(data)); } catch (_) { return sendJson(res, 500, { ok:false, error:'Invalid APK manifest' }); }
-    });
     return;
   }
   if (sfxUrl.startsWith('/PackSFXTanks/') && req.method === 'GET') { serveAudioFile(res, SFX_DIR, path.basename(sfxUrl), true); return; }
