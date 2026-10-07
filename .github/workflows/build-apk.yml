@@ -1,10 +1,51 @@
-name: Disabled duplicate APK builder
+name: Build Steel Frontier Android APK
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  note:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Use .github/workflows/android.yml for Steel Frontier APK builds."
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Prepare web assets
+        run: |
+          rm -rf android-app/app/src/main/assets
+          mkdir -p android-app/app/src/main/assets/www
+          cp index.html android-app/app/src/main/assets/www/index.html
+          cp -r PackMusic android-app/app/src/main/assets/www/
+          cp -r PackSFXTanks android-app/app/src/main/assets/www/
+
+      - name: Build APK
+        working-directory: android-app
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk dist/SteelFrontier-debug.apk
+          sha256sum dist/SteelFrontier-debug.apk > dist/SHA256SUM.txt
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: steel-frontier-debug-apk
+          path: dist/*
