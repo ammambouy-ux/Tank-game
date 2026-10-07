@@ -41,6 +41,8 @@ public class MainActivity extends Activity {
     private static final String SFX_API = BASE_URL + "/api/sfx";
     private static final String MUSIC_API = BASE_URL + "/api/music";
     private static final long UPDATE_INTERVAL_MS = 5 * 60 * 1000L;
+    private static final String GITHUB_RELEASES_API = "https://api.github.com/repos/ammambouy-ux/Tank-game/releases/latest";
+    private static final String APK_MIME = "application/vnd.android.package-archive";
 
     private WebView webView;
     private File webRoot;
@@ -157,6 +159,7 @@ public class MainActivity extends Activity {
     }
 
     private void checkForUpdate(boolean userRequested) {
+        checkForApkUpdate();
         if (!hasNetwork()) {
             if (userRequested) Toast.makeText(this, "Нет подключения к интернету", Toast.LENGTH_SHORT).show();
             return;
@@ -177,6 +180,169 @@ public class MainActivity extends Activity {
                 // Network/Render cold start: keep the local game running.
             }
         });
+    }
+
+    private void checkForApkUpdate() {
+        if (!hasNetwork() || updateDialogVisible) return;
+        io.execute(() -> {
+            try {
+                ApkRelease release = fetchLatestRelease();
+                if (!isNewerVersion(release.version, BuildConfig.VERSION_NAME)) return;
+                String dismissed = prefs.getString("dismissed_apk_version", "");
+                if (release.version.equals(dismissed)) return;
+                runOnUiThread(() -> showApkUpdateDialog(release));
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    private ApkRelease fetchLatestRelease() throws Exception {
+        String json = new String(httpGet(GITHUB_RELEASES_API), StandardCharsets.UTF_8);
+        org.json.JSONObject root = new org.json.JSONObject(json);
+        String version = root.optString("tag_name", "").replaceFirst("^[vV]", "").trim();
+        org.json.JSONArray assets = root.optJSONArray("assets");
+        String apkUrl = "";
+        if (assets != null) {
+            for (int i = 0; i < assets.length(); i++) {
+                org.json.JSONObject asset = assets.optJSONObject(i);
+                if (asset == null) continue;
+                String name = asset.optString("name", "");
+                if (name.toLowerCase(Locale.US).endsWith(".apk")) {
+                    apkUrl = asset.optString("browser_download_url", "");
+                    break;
+                }
+            }
+        }
+        if (version.isEmpty() || apkUrl.isEmpty()) throw new IOException("No installable APK release");
+        return new ApkRelease(version, apkUrl);
+    }
+
+    private boolean isNewerVersion(String remote, String local) {
+        int[] r = parseVersion(remote);
+        int[] l = parseVersion(local);
+        for (int i = 0; i < Math.max(r.length, l.length); i++) {
+            int rv = i < r.length ? r[i] : 0;
+            int lv = i < l.length ? l[i] : 0;
+            if (rv != lv) return rv > lv;
+        }
+        return false;
+    }
+
+    private int[] parseVersion(String v) {
+        String clean = v == null ? "" : v.trim().replaceFirst("^[vV]", "");
+        String[] parts = clean.split("\\.");
+        int[] out = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            try {
+                Matcher m = Pattern.compile("\\d+").matcher(parts[i]);
+                out[i] = m.find() ? Integer.parseInt(m.group()) : 0;
+            } catch (Exception ignored) {
+                out[i] = 0;
+            }
+        }
+        return out;
+    }
+
+    private void showApkUpdateDialog(ApkRelease release) {
+        if (isFinishing() || updateDialogVisible) return;
+        updateDialogVisible = true;
+        new AlertDialog.Builder(this)
+                .setTitle("Доступно обновление")
+                .setMessage("Установлена версия " + BuildConfig.VERSION_NAME
+                        + ". Доступна новая версия " + release.version
+                        + ".\n\nОбновить сейчас или сделать это позже?")
+                .setNegativeButton("Позже", (d, w) -> {
+                    prefs.edit().putString("dismissed_apk_version", release.version).apply();
+                    updateDialogVisible = false;
+                })
+                .setPositiveButton("Обновить", (d, w) -> {
+                    updateDialogVisible = false;
+                    downloadAndInstallApk(release);
+                })
+                .setOnCancelListener(d -> updateDialogVisible = false)
+                .show();
+    }
+
+    private void downloadAndInstallApk(ApkRelease release) {
+        if (android.os.Build.VERSION.SDK_INT >= 26
+                && !getPackageManager().canRequestPackageInstalls()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Разрешение на установку")
+                    .setMessage("Разреши этому приложению устанавливать APK из неизвестных источников.")
+                    .setNegativeButton("Отмена", null)
+                    .setPositiveButton("Открыть настройки", (d, w) -> {
+                        try {
+                            startActivity(new android.content.Intent(
+                                    android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                    android.net.Uri.parse("package:" + getPackageName())));
+                        } catch (Exception e) {
+                            startActivity(new android.content.Intent(
+                                    android.provider.Settings.ACTION_SECURITY_SETTINGS));
+                        }
+                    })
+                    .show();
+            return;
+        }
+
+        Toast.makeText(this, "Загрузка обновления " + release.version + "…", Toast.LENGTH_SHORT).show();
+
+        android.app.DownloadManager.Request req =
+                new android.app.DownloadManager.Request(android.net.Uri.parse(release.apkUrl));
+        req.setTitle("Стальной рубеж " + release.version);
+        req.setDescription("Загрузка обновления");
+        req.setMimeType(APK_MIME);
+        req.setNotificationVisibility(
+                android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        req.setDestinationInExternalFilesDir(
+                this,
+                android.os.Environment.DIRECTORY_DOWNLOADS,
+                "SteelFrontier-" + release.version + ".apk");
+
+        android.app.DownloadManager dm =
+                (android.app.DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        long downloadId = dm.enqueue(req);
+        handler.postDelayed(() -> waitForApkDownload(dm, downloadId, release), 500L);
+    }
+
+    private void waitForApkDownload(android.app.DownloadManager dm, long id, ApkRelease release) {
+        android.database.Cursor cursor = null;
+        try {
+            cursor = dm.query(new android.app.DownloadManager.Query().setFilterById(id));
+            if (cursor == null || !cursor.moveToFirst()) {
+                handler.postDelayed(() -> waitForApkDownload(dm, id, release), 800L);
+                return;
+            }
+            int status = cursor.getInt(cursor.getColumnIndexOrThrow(
+                    android.app.DownloadManager.COLUMN_STATUS));
+            if (status == android.app.DownloadManager.STATUS_PENDING
+                    || status == android.app.DownloadManager.STATUS_RUNNING) {
+                handler.postDelayed(() -> waitForApkDownload(dm, id, release), 800L);
+                return;
+            }
+            if (status != android.app.DownloadManager.STATUS_SUCCESSFUL) {
+                Toast.makeText(this, "Не удалось скачать обновление", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            String uriString = cursor.getString(cursor.getColumnIndexOrThrow(
+                    android.app.DownloadManager.COLUMN_LOCAL_URI));
+            if (uriString == null || uriString.isEmpty()) {
+                Toast.makeText(this, "Файл обновления не найден", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            android.content.Intent intent = new android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse(uriString));
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
+            prefs.edit().putString("dismissed_apk_version", release.version).apply();
+        } catch (Exception e) {
+            Toast.makeText(this, "Android не смог открыть установщик APK", Toast.LENGTH_LONG).show();
+        } finally {
+            if (cursor != null) cursor.close();
+        }
     }
 
     private boolean hasNetwork() {
@@ -329,6 +495,14 @@ public class MainActivity extends Activity {
 
         byte[] bytes() {
             return html.getBytes(StandardCharsets.UTF_8);
+        }
+    }
+    private static final class ApkRelease {
+        final String version;
+        final String apkUrl;
+        ApkRelease(String version, String apkUrl) {
+            this.version = version;
+            this.apkUrl = apkUrl;
         }
     }
 }
