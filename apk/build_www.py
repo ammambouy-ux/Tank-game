@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import pathlib, re, shutil
+import os, pathlib, re, shutil
 
 APK = pathlib.Path(__file__).resolve().parent
 ROOT = APK.parent
@@ -20,6 +20,7 @@ m = re.search(r"const GAME_VERSION='([^']+)'", s)
 if not m:
     raise SystemExit("GAME_VERSION not found")
 version = m.group(1)
+build_number = int(os.environ.get('SF_BUILD', '0') or 0)
 
 def sub(old, new):
     global s
@@ -41,7 +42,8 @@ update_js = r"""
 (function(){
   if(!window.__STEEL_FRONTIER_APP__)return;
   var CURRENT_VERSION='__VERSION__';
-  var ENDPOINT='https://steel-frontier.onrender.com/api/apk/version';
+  var CURRENT_BUILD=Number('__BUILD__')||0;
+  var ENDPOINT='https://raw.githubusercontent.com/ammambouy-ux/Tank-game/main/apk/latest.json';
   var shown=false;
 
   function ver(v){
@@ -59,7 +61,8 @@ update_js = r"""
 
   function show(info){
     if(shown)return;
-    if(localStorage.getItem('sf_apk_update_later')===String(info.version))return;
+    var updateKey=String(info.version)+':'+String(info.build||0);
+    if(localStorage.getItem('sf_apk_update_later')===updateKey)return;
     shown=true;
     style();
     var el=document.getElementById('sf-update');
@@ -72,7 +75,7 @@ update_js = r"""
     el.innerHTML='<div class="box"><h2>ДОСТУПНО ОБНОВЛЕНИЕ</h2><p>Установить новую версию <span class="ver">'+info.version+'</span>?</p><p style="opacity:.7;font-size:13px">'+notes+'</p><div class="btns"><button id="sf-update-now">ОБНОВИТЬ</button><button id="sf-update-later" class="later">ПОЗЖЕ</button></div></div>';
     el.classList.add('show');
     document.getElementById('sf-update-later').onclick=function(){
-      localStorage.setItem('sf_apk_update_later',String(info.version));
+      localStorage.setItem('sf_apk_update_later',updateKey);
       el.classList.remove('show');
       shown=false;
     };
@@ -92,7 +95,7 @@ update_js = r"""
       var r=await fetch(ENDPOINT+'?v='+Date.now(),{cache:'no-store'});
       if(!r.ok)return;
       var info=await r.json();
-      if(info&&info.version&&info.apkUrl&&ver(info.version)>ver(CURRENT_VERSION))show(info);
+      if(info&&info.version&&info.apkUrl&&(ver(info.version)>ver(CURRENT_VERSION)||Number(info.build||0)>CURRENT_BUILD))show(info);
     }catch(e){}
   }
 
@@ -102,8 +105,8 @@ update_js = r"""
 })();
 </script>
 """
-update_js = update_js.replace("__VERSION__", version)
+update_js = update_js.replace("__VERSION__", version).replace("__BUILD__", str(build_number))
 s = s.replace("</body>", update_js + "</body>", 1)
 
 (WWW / "index.html").write_text(s, encoding="utf-8")
-print(f"Prepared APK web bundle for Steel Frontier {version}")
+print(f"Prepared APK web bundle for Steel Frontier {version} build {build_number}")
