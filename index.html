@@ -105,65 +105,13 @@ button:disabled{opacity:.5}
 #rv .timer .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(20px,6vh,34px);color:var(--acc)}
 #rv .hint{font-family:system-ui,sans-serif;font-size:clamp(11px,2.6vh,13px);opacity:.6}
 #rv .credits{font-family:system-ui,sans-serif;font-size:clamp(12px,3vh,15px);opacity:.85}
-/* ===== UI REDESIGN ===== */
-:root{--panel:#1c2417;--panel2:#26321f;--line:#48583b;--muted:#a7ac9a}
-#ov{padding:clamp(14px,3vw,34px);background-color:#10140c;background-image:radial-gradient(ellipse at 18% 20%,#33432a 0%,transparent 44%),radial-gradient(ellipse at 82% 82%,#11180d 0%,transparent 48%),repeating-linear-gradient(135deg,rgba(255,255,255,.025) 0 2px,transparent 2px 30px)}
-#ovi{width:min(1180px,100%);height:min(680px,100%);display:grid;grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr);gap:clamp(18px,3vw,34px);margin:auto}
-.menu-brand,.menu-actions{position:relative;background:linear-gradient(180deg,rgba(38,50,31,.97),rgba(20,27,16,.97));border:1px solid var(--line);box-shadow:0 16px 44px #0008;overflow:hidden}
-.menu-brand:before,.menu-actions:before,#bs:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 2px,transparent 2px 26px)}
-.menu-brand{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:clamp(22px,4vw,42px)}
-.menu-brand .kicker{font:700 11px system-ui,sans-serif;letter-spacing:4px;color:#94a283;margin-bottom:12px}
-#ov h1#t{font-size:clamp(54px,8vw,112px);letter-spacing:1px;margin:0;line-height:.84;text-shadow:5px 5px 0 #000;color:var(--acc)}
-#mtank{width:min(300px,48vw);height:min(180px,30vh);margin:16px 0 10px;background:radial-gradient(ellipse at 50% 65%,#6a7a4a42,transparent 70%);border-radius:14px}
-#ov #m{max-width:420px;margin:0;color:#d7dacb;font-size:clamp(12px,1.5vw,15px)}
-.menu-status{width:min(500px,100%);display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
-.menu-stat{padding:11px 13px;background:#10150c;border:1px solid #34412b;text-align:left}
-.menu-stat b{display:block;font:700 10px system-ui,sans-serif;letter-spacing:1.6px;color:#8e9d7d;margin-bottom:4px}
-.menu-stat span{display:block;font:18px Impact,"Arial Narrow Bold",sans-serif;color:#f1ead2}
-.menu-actions{padding:clamp(18px,3vw,30px);display:flex;flex-direction:column;justify-content:center}
-.menu-actions .panel-kicker{font:700 10px system-ui,sans-serif;letter-spacing:2.5px;color:#8e9d7d}
-.menu-actions h2{margin:4px 0 16px;font-size:clamp(26px,4vw,42px);font-weight:400}
-.menu-main-btn{width:100%;font-size:clamp(24px,4vw,34px);padding:16px 22px;margin-bottom:12px}
-.menu-secondary{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-secondary button{font-size:18px;padding:12px 14px}
-.menu-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.menu-tools button{flex:1 1 100px;font-size:13px;padding:9px 10px}
-.menu-profile{margin-top:16px;padding:12px 14px;border:1px solid #3b4a30;background:#11170e}
-.menu-profile .row{display:flex;justify-content:space-between;gap:12px;font:13px system-ui,sans-serif;color:#cdd2c1}.menu-profile .row+.row{margin-top:8px}.menu-profile .accent{color:var(--acc)}
-#cn{font-family:Impact,"Arial Narrow Bold",sans-serif!important;font-size:16px!important;opacity:1!important}
-#on{font-family:system-ui,sans-serif;font-size:12px;opacity:.9}#ver{font-family:system-ui,sans-serif;font-size:11px;opacity:.55}
-#bs{padding:clamp(18px,3vw,34px);background:#10140c;background-image:radial-gradient(ellipse at 50% 0%,#2a3921 0%,transparent 58%),repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 2px,transparent 2px 26px)}
-#bs>h2{position:relative;margin:0;font-size:clamp(34px,5vw,52px);color:var(--acc);text-shadow:3px 3px #000}
-#bs>p{position:relative;color:var(--muted)}
-#bs .gr{position:relative;max-width:1160px;margin:16px auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
-#bs .en{background:#26321f;border:1px solid #3e4c33;border-left:4px solid var(--acc);box-shadow:0 8px 20px #0005;padding:14px;min-height:108px;transition:border-color .2s,transform .2s}
-#bs .en:hover{border-color:#70845a;transform:translateY(-2px)}
-#bs .en b{font-size:21px}.en em{font-size:12px}.en i{font-size:13px;line-height:1.4}
-#bs .ec{width:72px;height:72px;background:#11170e;border:1px solid #3d4b32;border-radius:5px}
-#bs .en{display:flex;gap:12px;align-items:flex-start}
-#bs .col{position:relative;max-width:720px;margin:22px auto;display:grid;grid-template-columns:1fr 1fr;gap:14px}
-#bs .col button{min-height:150px;text-align:left;padding:20px;background:linear-gradient(160deg,#2a3722,#172014);border:1px solid #495a3b;color:var(--fg);box-shadow:0 10px 24px #0006}
-#bs .col button:first-child{grid-column:span 2;background:linear-gradient(160deg,#3b4826,#202b18);color:#f5df9b}
-#bs .row{position:relative;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-#bs .row input,#bs input{background:#11170e;border:1px solid #495a3b;color:var(--fg);padding:11px 12px;border-radius:4px;font-family:system-ui,sans-serif}
-#bs .row input:focus,#bs input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px #e8b33a22}
-#bs .lr{background:#26321f;border:1px solid #3e4c33;border-left:4px solid var(--acc);padding:14px;box-shadow:0 6px 16px #0005;min-height:58px;align-items:center}
-#bs .lr b{font-size:18px}.lr span{font-size:12px;color:#bbc3b1}
-#bs #ost{background:#11170e;border:1px solid #36432d;padding:10px 12px}
-#pm{background:rgba(7,10,5,.84);backdrop-filter:blur(3px)}
-#pm:before,#rv:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 2px,transparent 2px 28px);pointer-events:none}
-#pm p{background:#151c10;border:1px solid #445238;padding:10px 14px}
-#rv{background:rgba(7,10,5,.9);backdrop-filter:blur(4px)}#rv .sub,#rv .reward{background:#151c10;border:1px solid #445238;padding:10px 14px}
-#rv .timer{filter:drop-shadow(0 0 12px #e8b33a44)}
-@media (max-width:900px){#ovi{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto;min-height:100%}.menu-brand{min-height:48vh}.menu-actions{min-height:44vh}}
-@media (max-width:620px){#ov{padding:12px}.menu-brand,.menu-actions{padding:18px 14px}.menu-secondary{grid-template-columns:1fr}.menu-status{grid-template-columns:1fr 1fr}#bs .col{grid-template-columns:1fr}#bs .col button:first-child{grid-column:auto}#bs .gr{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
-<div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="ld"><div class="box"><b id="ldt">Загрузка…</b><span>•••</span></div></div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi">
-<section class="menu-brand"><div class="kicker">TACTICAL TANK // ONLINE WARFARE</div><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="300" height="180"></canvas><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><div class="menu-status"><div class="menu-stat"><b>РЕСУРС</b><span id="cn">💰 0 монет</span></div><div class="menu-stat"><b>СВЯЗЬ</b><span id="on">⚪ Онлайн: …</span></div></div></section>
-<section class="menu-actions"><div class="panel-kicker">COMMAND DECK</div><h2>Центр управления</h2><button id="go" class="menu-main-btn">В БОЙ</button><div class="menu-secondary"><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div><div class="menu-tools"><button id="snd" class="sc">🔊 ЗВУК</button><button id="lang" class="sc">RU</button><button id="adm" class="sc">АДМИН</button></div><div class="menu-profile"><div class="row"><span>СТАТУС</span><span class="accent">ГОТОВ</span></div><div class="row"><span>ВЕРСИЯ</span><span id="ver">Версия 1.4.7</span></div></div></section>
-</div></div><div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
+<div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="ld"><div class="box"><b id="ldt">Загрузка…</b><span>•••</span></div></div><div id="bn"></div><div id="cd"></div><div id="pm"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div><div id="ov"><div id="ovi"><div class="mc"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><canvas id="mtank" width="150" height="90"></canvas></div><div class="mc"><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p><p id="cn" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.85;margin:0"></p><p id="on" style="font-family:system-ui,sans-serif;font-size:14px;opacity:.9;margin:0">⚪ Онлайн: …</p><p id="ver" style="font-family:system-ui,sans-serif;font-size:12px;opacity:.6;margin:0"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button id="snd" class="sc" style="font-size:12px;padding:5px 12px">🔊 ЗВУК</button><button id="lang" class="sc" style="font-size:12px;padding:5px 10px">RU</button><button id="adm" class="sc" style="font-size:12px;padding:5px 10px">АДМИН</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></div></div></div></div>
+<div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
 const GAME_VERSION='1.4.7';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
