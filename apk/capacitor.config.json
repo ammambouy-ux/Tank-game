@@ -1,9 +1,0 @@
-{
-  "appId": "com.ammambouy.steelfrontier",
-  "appName": "Steel Frontier",
-  "webDir": "www",
-  "backgroundColor": "#141a10",
-  "android": {
-    "allowMixedContent": false
-  }
-}
