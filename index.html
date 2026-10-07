@@ -1888,6 +1888,7 @@ const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 function saveResumeToken(t){net.resume=t||'';try{if(t)sessionStorage.setItem('tankResume',t);else sessionStorage.removeItem('tankResume')}catch(e){}}
 function srvAddr(){
   if(CG.on)return ONLINE_SERVER;
+  if(location.protocol==='file:')return ONLINE_SERVER;
   if(/^https?:$/.test(location.protocol)&&!window.claude)return location.host;
   let u=persistGet('srv','');
   return u
