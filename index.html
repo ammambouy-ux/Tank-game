@@ -1012,8 +1012,8 @@ function ctrl(dt){
       if(R()<.4){
         const ca=Math.cos(P.a),sa=Math.sin(P.a);
         for(const side of [-1,1]){
-          const lx=-U*.58,ly=side*U*.54;
-          boom(P.x+ca*lx-sa*ly,P.y+sa*lx+ca*ly,2,'#6b6a4a',U*.8,.35);
+          const lx=0,ly=side*U*.54;
+          boom(P.x+ca*lx-sa*ly,P.y+sa*lx+ca*ly,2,'#6b6a4a',U*.55,.3);
         }
       }}
     const [ax,ay,am]=vec(st.R);
