@@ -49,10 +49,12 @@ public class MainActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private boolean updateDialogVisible = false;
 
-    private final Runnable periodicUpdateCheck = () -> {
+    private final Runnable periodicUpdateCheck = this::runPeriodicUpdateCheck;
+
+    private void runPeriodicUpdateCheck() {
         checkForUpdate(false);
         handler.postDelayed(periodicUpdateCheck, UPDATE_INTERVAL_MS);
-    };
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
