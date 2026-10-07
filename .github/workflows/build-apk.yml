@@ -30,9 +30,6 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Restore stable debug keystore
         uses: actions/cache@v4
         with:
@@ -62,6 +59,8 @@ jobs:
 
       - name: Build local web bundle
         working-directory: apk
+        env:
+          SF_BUILD: ${{ github.run_number }}
         run: python3 build_www.py
 
       - name: Sync Capacitor
@@ -126,7 +125,7 @@ jobs:
           s=open("index.html",encoding="utf-8").read()
           v=re.search(r"const GAME_VERSION='([^']+)'",s).group(1)
           a,b,c=[int(x) for x in v.split('.')]
-          data={"version":v,"versionCode":a*1000000+b*1000+c,"apkUrl":"$URL","notes":"Автоматическое обновление Steel Frontier."}
+          data={"version":v,"versionCode":a*1000000+b*1000+c,"build":int("${GITHUB_RUN_NUMBER}"),"apkUrl":"$URL","notes":"Автоматическое обновление Steel Frontier."}
           open("apk/latest.json","w",encoding="utf-8").write(json.dumps(data,ensure_ascii=False,indent=2)+"\\n")
           PY
 
