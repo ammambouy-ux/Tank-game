@@ -1939,7 +1939,7 @@ function netLeave(){
   net.manual=true;net.reconnecting=false;net.retryCount=0;if(net.retryTimer){clearTimeout(net.retryTimer);net.retryTimer=null}
   if(net.lobby){send({t:'leave'});net.lobby=null}
   net.invitePass='';saveResumeToken('');clearInterval(net.iv);lobChip();cgRoomClosed();
-  if(lanIsHost&&window.AndroidLan){setTimeout(()=>{try{window.AndroidLan.stopLanHost()}catch(e){}},350);lanIsHost=false}
+  if(lanIsHost&&window.AndroidLan){setTimeout(()=>{if(!lanIsHost){try{window.AndroidLan.stopLanHost()}catch(e){}}},350);lanIsHost=false}
 }
 function scheduleReconnect(){
   if(net.manual||net.reconnecting||(!online&&!net.lobby))return;
