@@ -38,6 +38,17 @@ jobs:
           cp -r PackMusic android-app/app/src/main/assets/www/
           cp -r PackSFXTanks android-app/app/src/main/assets/www/
 
+      - name: Validate inline game JavaScript
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]).filter(s => s.trim());
+          if (!scripts.length) throw new Error('No inline game script found');
+          fs.writeFileSync('/tmp/steel-frontier-inline.js', scripts.join('\n;\n'));
+          NODE
+          node --check /tmp/steel-frontier-inline.js
+
       - name: Build APK
         working-directory: android-app
         run: gradle --no-daemon :app:assembleDebug
