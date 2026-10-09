@@ -10,8 +10,8 @@ android {
         applicationId 'com.ammambouy.steelfrontier'
         minSdk 23
         targetSdk 35
-        versionCode 149
-        versionName '1.4.9'
+        versionCode 150
+        versionName '1.5.0'
     }
 
     buildTypes {
@@ -22,4 +22,8 @@ android {
             minifyEnabled false
         }
     }
+}
+
+dependencies {
+    implementation 'org.java-websocket:Java-WebSocket:1.5.7'
 }

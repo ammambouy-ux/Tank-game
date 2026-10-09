@@ -1,21 +1,26 @@
 package com.ammambouy.steelfrontier;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -50,6 +55,9 @@ public class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private boolean updateDialogVisible = false;
+    private volatile LocalLanServer lanServer;
+    private static final int REQUEST_LAN_PERMISSION = 7101;
+    private volatile boolean pendingLanPermission = false;
 
     private final Runnable periodicUpdateCheck = this::runPeriodicUpdateCheck;
 
@@ -77,6 +85,7 @@ public class MainActivity extends Activity {
         webView.setBackgroundColor(Color.rgb(20, 26, 16));
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         webView.setWebViewClient(new WebViewClient());
+        webView.addJavascriptInterface(new LanBridge(), "AndroidLan");
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -84,6 +93,7 @@ public class MainActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setAllowFileAccess(true);
         s.setAllowContentAccess(false);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
         s.setMediaPlaybackRequiresUserGesture(false);
@@ -133,8 +143,36 @@ public class MainActivity extends Activity {
 
     private void ensureBundledAssets() throws IOException {
         File index = new File(webRoot, "index.html");
-        if (index.isFile()) return;
-        copyAssetTree("www", webRoot);
+        if (!index.isFile()) {
+            copyAssetTree("www", webRoot);
+            return;
+        }
+
+        String bundledVersion;
+        String installedVersion;
+        try (InputStream in = getAssets().open("www/index.html")) {
+            bundledVersion = readGameVersion(in);
+        }
+        try (InputStream in = new FileInputStream(index)) {
+            installedVersion = readGameVersion(in);
+        }
+
+        // When an APK is updated, replace an older cached WebView game with the
+        // newer bundled copy. Keep a newer hot-updated game if it is already present.
+        if (isNewerVersion(bundledVersion, installedVersion)) {
+            copyAssetTree("www", webRoot);
+        }
+    }
+
+    private String readGameVersion(InputStream source) throws IOException {
+        try (InputStream in = source; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[32 * 1024];
+            int n;
+            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+            String content = new String(out.toByteArray(), StandardCharsets.UTF_8);
+            Matcher m = Pattern.compile("GAME_VERSION\\s*=\\s*['\\\"]([^'\\\"]+)['\\\"]").matcher(content);
+            return m.find() ? m.group(1) : "0.0.0";
+        }
     }
 
     private void copyAssetTree(String assetPath, File outDir) throws IOException {
@@ -489,6 +527,92 @@ public class MainActivity extends Activity {
         StringBuilder sb = new StringBuilder(data.length * 2);
         for (byte b : data) sb.append(String.format(Locale.US, "%02x", b));
         return sb.toString();
+    }
+
+
+    private final class LanBridge {
+        @JavascriptInterface
+        public void requestLanAccess() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= 33
+                        && checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) != PackageManager.PERMISSION_GRANTED) {
+                    pendingLanPermission = true;
+                    requestPermissions(new String[]{Manifest.permission.NEARBY_WIFI_DEVICES}, REQUEST_LAN_PERMISSION);
+                    return;
+                }
+                deliverLanPermission(true);
+            });
+        }
+
+        @JavascriptInterface
+        public boolean startLanHost() {
+            synchronized (MainActivity.this) {
+                try {
+                    if (lanServer != null && lanServer.isRunningReady()) return true;
+                    if (lanServer != null) {
+                        LocalLanServer stale = lanServer;
+                        lanServer = null;
+                        new Thread(stale::shutdownLocal, "lan-stale-stop").start();
+                    }
+                    LocalLanServer server = new LocalLanServer();
+                    lanServer = server;
+                    server.start();
+                    if (server.awaitStarted(1800L)) return true;
+                    lanServer = null;
+                    new Thread(server::shutdownLocal, "lan-start-failed-stop").start();
+                    return false;
+                } catch (Exception e) {
+                    lanServer = null;
+                    return false;
+                }
+            }
+        }
+
+        @JavascriptInterface
+        public void stopLanHost() {
+            final LocalLanServer server;
+            synchronized (MainActivity.this) {
+                server = lanServer;
+                lanServer = null;
+            }
+            if (server != null) new Thread(server::shutdownLocal, "lan-stop").start();
+        }
+
+        @JavascriptInterface
+        public void scanLanRooms() {
+            io.execute(() -> {
+                JSONArray rooms = LocalLanServer.scanForRooms();
+                String quoted = JSONObject.quote(rooms.toString());
+                handler.post(() -> {
+                    if (webView != null) {
+                        webView.evaluateJavascript("window.onLanRooms&&window.onLanRooms(" + quoted + ");", null);
+                    }
+                });
+            });
+        }
+    }
+
+    private void deliverLanPermission(boolean granted) {
+        if (webView == null) return;
+        webView.evaluateJavascript("window.onLanPermission&&window.onLanPermission(" + (granted ? "true" : "false") + ");", null);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_LAN_PERMISSION && pendingLanPermission) {
+            pendingLanPermission = false;
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            deliverLanPermission(granted);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        LocalLanServer server = lanServer;
+        lanServer = null;
+        if (server != null) new Thread(server::shutdownLocal, "lan-destroy").start();
+        super.onDestroy();
     }
 
     private static final class RemoteIndex {
