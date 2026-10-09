@@ -2018,7 +2018,7 @@ function netEnded(msg){
 function netErr(msg){
   msg=localizeServerMsg(msg);
   if(msg==='Соединение закрыто')msg=t('disconnected');
-  const e=$('ost');
+  const e=$('ost')||$('lanstatus');
   if(e&&$('bs').style.display!=='none'){e.style.color='#ff8a6a';e.textContent='⚠ '+msg}
   else if($('pm').style.display==='flex'){$('pmi').textContent='⚠ '+msg;net.fromPause=false}
   else showBanner('⚠',msg);
@@ -2222,6 +2222,7 @@ window.onLanRooms=function(raw){
   renderLanRooms();
 };
 function offlineLanScreen(){
+  lanMode=false;lanAddress='';lanIsHost=false;
   net.scr='lan';lanSelected=null;
   $('bs').innerHTML=`<h2>${LANG==='en'?'OFFLINE · LAN':'ОФЛАЙН · ЛОББИ'}</h2><p id="lanhint">${LANG==='en'?'Connect both devices to the same Wi-Fi or enable a hotspot on one phone. The host must keep the game open.':'Подключи оба телефона к одному Wi‑Fi или включи точку доступа на одном. У хозяина лобби игра должна оставаться открытой.'}</p><p id="lanstatus">—</p><div id="lanlist"></div><div class="row"><button id="lanrefresh" class="sm sc">${LANG==='en'?'REFRESH':'ОБНОВИТЬ'}</button><button id="lancreate" class="sm">${LANG==='en'?'CREATE ROOM':'СОЗДАТЬ ЛОББИ'}</button><button id="lanback" class="sm sc">${t('back')}</button></div>`;
   $('bs').style.display='block';$('lanrefresh').onclick=refreshLanRooms;$('lancreate').onclick=createLanScreen;$('lanback').onclick=()=>modeScreen();
@@ -2247,16 +2248,16 @@ function createLanScreen(){
     lanMessage(LANG==='en'?'Starting local room host…':'Запускаю локальное лобби…');
     const ok=window.AndroidLan.startLanHost();if(!ok){lanMessage(LANG==='en'?'Could not start the local server. Close any other room and try again.':'Не удалось запустить локальный сервер. Закрой другое лобби и попробуй ещё раз.',true);return}
     lanMode=true;lanIsHost=true;lanAddress='127.0.0.1:32123';saveResumeToken('');net.scr='create';
-    netConnect((connected,msg)=>{if(!connected){lanMessage(msg||'Не удалось подключиться к локальному лобби',true);window.AndroidLan.stopLanHost();lanIsHost=false;return}net.scr='room';send({t:'create',name:roomName,pass,pn:myName,tk:equip});},{timeout:10000});
+    netConnect((connected,msg)=>{if(!connected){lanMode=false;lanAddress='';lanMessage(msg||'Не удалось подключиться к локальному лобби',true);window.AndroidLan.stopLanHost();lanIsHost=false;return}net.scr='room';send({t:'create',name:roomName,pass,pn:myName,tk:equip});},{timeout:10000});
   };
 }
 function joinLanScreen(room){
   lanSelected=room;net.scr='lanJoin';$('bs').innerHTML=`<h2>${LANG==='en'?'JOIN LAN ROOM':'ПОДКЛЮЧИТЬСЯ'}</h2><p style="font-family:system-ui,sans-serif;font-size:14px">${esc(room.name||'Лобби')} · ${esc(room.address||'')} · ${esc(room.code||'')}</p><div class="col"><input id="lanjoinpass" maxlength="16" placeholder="${room.lock?t('password'):t('passwordOptional')}"><p id="lanstatus"></p><div class="row"><button id="lanJoinBack" class="sm sc">${t('back')}</button><button id="lanJoinGo" class="sm">${LANG==='en'?'JOIN':'ВОЙТИ'}</button></div></div>`;$('bs').style.display='block';
-  $('lanJoinBack').onclick=offlineLanScreen;
+  $('lanJoinBack').onclick=()=>{lanMode=false;lanAddress='';lanIsHost=false;offlineLanScreen()};
   $('lanJoinGo').onclick=()=>{
     if(net.lobby)netLeave();lanMode=true;lanIsHost=false;lanAddress=(room.address||'')+':'+(Number(room.port)||32123);saveResumeToken('');
     lanMessage(LANG==='en'?'Connecting on the local network…':'Подключаюсь к локальной сети…');
-    netConnect((connected,msg)=>{if(!connected){lanMessage(msg||'Не удалось подключиться',true);return}net.scr='room';send({t:'join',code:room.code,pass:$('lanjoinpass').value.trim(),pn:myName,tk:equip});},{timeout:10000});
+    netConnect((connected,msg)=>{if(!connected){lanMode=false;lanAddress='';lanMessage(msg||'Не удалось подключиться',true);return}net.scr='room';send({t:'join',code:room.code,pass:$('lanjoinpass').value.trim(),pn:myName,tk:equip});},{timeout:10000});
   };
 }
 
