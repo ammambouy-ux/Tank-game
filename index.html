@@ -122,11 +122,11 @@ button:disabled{opacity:.5}
  background:radial-gradient(ellipse 70% 60% at 28% 58%,rgba(232,179,58,.13),transparent 62%),radial-gradient(ellipse 90% 70% at 50% 0%,#26331d 0%,transparent 70%),linear-gradient(180deg,#151d10 0%,#0c1009 100%)}
 .mbg i{position:absolute;inset:0;display:block}
 .mgrid{background-image:linear-gradient(rgba(241,234,210,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(241,234,210,.045) 1px,transparent 1px);background-size:44px 44px;
- -webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 20%,transparent 78%);mask-image:radial-gradient(ellipse at 50% 45%,#000 20%,transparent 78%);animation:mGrid 18s linear infinite}
+ -webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 20%,transparent 78%);mask-image:radial-gradient(ellipse at 50% 45%,#000 20%,transparent 78%);animation:none}
 @keyframes mGrid{to{background-position:44px 44px,44px 44px}}
-.mdust{opacity:.55;background-image:radial-gradient(1.6px 1.6px at 20% 30%,#ffd56b,transparent),radial-gradient(1.2px 1.2px at 70% 80%,#f1ead2,transparent),radial-gradient(2px 2px at 40% 70%,#e8b33a,transparent),radial-gradient(1.3px 1.3px at 85% 25%,#ffd56b,transparent),radial-gradient(1px 1px at 55% 50%,#fff,transparent);
- background-size:320px 320px;animation:mDust 26s linear infinite}
-@keyframes mDust{to{background-position:0 -320px}}
+.mdust{top:-320px!important;bottom:-320px!important;height:auto;opacity:.55;background-image:radial-gradient(1.6px 1.6px at 20% 30%,#ffd56b,transparent),radial-gradient(1.2px 1.2px at 70% 80%,#f1ead2,transparent),radial-gradient(2px 2px at 40% 70%,#e8b33a,transparent),radial-gradient(1.3px 1.3px at 85% 25%,#ffd56b,transparent),radial-gradient(1px 1px at 55% 50%,#fff,transparent);
+ background-size:320px 320px;transform:translate3d(0,0,0);will-change:transform;animation:mDust 26s linear infinite}
+@keyframes mDust{to{transform:translate3d(0,-320px,0)}}
 .mhills{top:auto!important;height:32vh;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 160' preserveAspectRatio='none'%3E%3Cpath fill='%230b0f08' fill-opacity='.55' d='M0 92l90-26 120 30 150-48 140 40 120-22 160 46 130-36 150 28 140-44v120H0z'/%3E%3Cpath fill='%23080b06' d='M0 128l130-22 160 26 170-30 150 24 180-28 140 30 140-18 130 12v58H0z'/%3E%3C/svg%3E") bottom/100% 100% no-repeat}
 .mvig{background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.55) 100%)}
 
@@ -155,10 +155,10 @@ button:disabled{opacity:.5}
 .mstage{position:relative;width:min(300px,52vh);aspect-ratio:5/3;margin-top:clamp(4px,2vh,18px);margin-left:clamp(0px,2vw,24px);display:flex;align-items:center;justify-content:center}
 .mradar{position:absolute;left:50%;top:52%;width:118%;aspect-ratio:1;transform:translate(-50%,-50%) scaleY(.42);border-radius:50%;
  background:repeating-radial-gradient(circle,transparent 0 17%,rgba(232,179,58,.22) 17% 17.6%),conic-gradient(from 0deg,rgba(232,179,58,.32),rgba(232,179,58,0) 22%,transparent);
- animation:mRadar 5s linear infinite;-webkit-mask-image:radial-gradient(circle,#000 55%,transparent 71%);mask-image:radial-gradient(circle,#000 55%,transparent 71%)}
+ animation:mRadar 5s linear infinite;will-change:transform;backface-visibility:hidden;-webkit-mask-image:radial-gradient(circle,#000 55%,transparent 71%);mask-image:radial-gradient(circle,#000 55%,transparent 71%)}
 @keyframes mRadar{to{transform:translate(-50%,-50%) scaleY(.42) rotate(360deg)}}
 .mbase{position:absolute;left:50%;top:66%;width:62%;height:16%;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.6),transparent 70%)}
-#mtank{position:relative;width:100%;height:auto;background:none;border-radius:0;animation:mBob 3.2s ease-in-out infinite;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+#mtank{position:relative;width:100%;height:auto;background:none;border-radius:0;animation:mBob 3.2s ease-in-out infinite;will-change:transform;backface-visibility:hidden;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
 @keyframes mBob{50%{transform:translateY(-4px)}}
 
 .mnav{display:flex;flex-direction:column;gap:clamp(7px,1.8vh,12px)}
@@ -179,8 +179,8 @@ button:disabled{opacity:.5}
 #ov .mnav button.sc:active,#bs button.sc:active,#pm button.sc:active,#rv button.plain:active,#bs #bk:active,#bs #m3:active{box-shadow:0 1px 0 #090c07,inset 0 0 0 1px rgba(241,234,210,.1)}
 #ov button:focus-visible,#bs button:focus-visible,#pm button:focus-visible,#rv button:focus-visible{outline:2px solid var(--m-acc2);outline-offset:3px}
 #ov button:disabled,#bs button:disabled,#pm button:disabled{filter:grayscale(.6);opacity:.55;transform:none}
-#ov .mnav #go::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-18deg);animation:mShine 3.6s ease-in-out infinite;pointer-events:none}
-@keyframes mShine{0%,62%{left:-60%}100%{left:130%}}
+#ov .mnav #go::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:translate3d(-150%,0,0) skewX(-18deg);animation:mShine 3.6s ease-in-out infinite;pointer-events:none;will-change:transform}
+@keyframes mShine{0%,62%{transform:translate3d(-150%,0,0) skewX(-18deg)}100%{transform:translate3d(325%,0,0) skewX(-18deg)}}
 
 /* иконки (через ::before, текст кнопок меняет игра) */
 #go::before,#bb::before,#gg::before,#bk::before,#m1::before,#mo::before,#m2::before,#m3::before,#pr::before,#pmn::before,#pmo::before,#pms::before,#pmc::before,
@@ -238,6 +238,7 @@ button:disabled{opacity:.5}
 
 @media (max-width:620px){#ovi{flex-direction:column;justify-content:center;align-items:stretch}.mhero{align-items:center}.mside{flex:none;width:100%}#ov h1{text-align:center}#ov h1::after{left:50%;transform:translateX(-50%)}.mstage{margin-left:0}}
 @media (max-height:380px){.mstage{width:min(240px,42vh)}#mtop{padding-top:max(6px,env(safe-area-inset-top,0px))}}
+@media (hover:none) and (pointer:coarse){#ov .mchips p,#ov .mtools button{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(0,0,0,.5)}}
 @media (prefers-reduced-motion:reduce){.mgrid,.mdust,.mradar,#mtank,#ov .mnav #go::after{animation:none!important}}
 </style>
 </head>
@@ -246,7 +247,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="ld"><div class="box"><b id="ldt">Загрузка…</b><span>•••</span></div></div><div id="bn"></div><div id="cd"></div><div id="pm"><div class="pmbox"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div></div><div id="ov"><div class="mbg" aria-hidden="true"><i class="mgrid"></i><i class="mdust"></i><i class="mhills"></i><i class="mvig"></i></div><div id="mtop"><div class="mchips"><p id="cn"></p><p id="on">⚪ Онлайн: …</p></div><div class="mtools"><button id="snd" class="sc">🔊 ЗВУК</button><button id="lang" class="sc">RU</button><button id="adm" class="sc">АДМИН</button></div></div><div id="ovi"><div class="mc mhero"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><div class="mstage"><i class="mradar"></i><i class="mbase"></i><canvas id="mtank" width="450" height="270"></canvas></div></div><div class="mc mside"><nav class="mnav"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></nav><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p></div></div><p id="ver"></p></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.5.2';
+const GAME_VERSION='1.5.3';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
