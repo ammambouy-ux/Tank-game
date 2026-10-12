@@ -247,7 +247,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="ld"><div class="box"><b id="ldt">Загрузка…</b><span>•••</span></div></div><div id="bn"></div><div id="cd"></div><div id="pm"><div class="pmbox"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div></div><div id="ov"><div class="mbg" aria-hidden="true"><i class="mgrid"></i><i class="mdust"></i><i class="mhills"></i><i class="mvig"></i></div><div id="mtop"><div class="mchips"><p id="cn"></p><p id="on">⚪ Онлайн: …</p></div><div class="mtools"><button id="snd" class="sc">🔊 ЗВУК</button><button id="lang" class="sc">RU</button><button id="adm" class="sc">АДМИН</button></div></div><div id="ovi"><div class="mc mhero"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><div class="mstage"><i class="mradar"></i><i class="mbase"></i><canvas id="mtank" width="450" height="270"></canvas></div></div><div class="mc mside"><nav class="mnav"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></nav><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p></div></div><p id="ver"></p></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.5.3';
+const GAME_VERSION='1.5.4';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -1665,6 +1665,43 @@ function tkTurret(c,u,t,c1,c2,s,l,w,bl2,bw2){
   c.strokeStyle='rgba(10,10,8,.45)';c.lineWidth=Math.max(.5,lw*.5);c.beginPath();c.moveTo(x0-R*.82,-R*.5);c.lineTo(x0-R*1.45,-R*.62);c.stroke();
   c.fillStyle='#0a0a08';c.beginPath();c.arc(x0-R*.82,-R*.5,Math.max(.8,R*.07),0,6.28);c.fill();
 }
+
+const _tkChassisCache=new Map(),_tkTurretCache=new Map();
+function tkCacheRead(cache,key){const v=cache.get(key);if(v){cache.delete(key);cache.set(key,v)}return v}
+function tkCacheWrite(cache,key,value,max){cache.set(key,value);while(cache.size>max){const first=cache.keys().next().value,old=cache.get(first);cache.delete(first);if(old&&old.canvas){old.canvas.width=1;old.canvas.height=1}}return value}
+function tkDrawChassis(c,u,t,c1,c2,s,l,w){
+  if(typeof document==='undefined'||!t)return tkChassis(c,u,t,c1,c2,s,l,w);
+  const uq=Math.round(u*2)/2,sq=Math.round(s*100)/100,lq=Math.round(l*2)/2,wq=Math.round(w*2)/2;
+  const sp=Math.max(3,u*.24*s),ca=Math.cos(t.a||0),sa=Math.sin(t.a||0),ph=((((t.x||0)*ca+(t.y||0)*sa)%sp)+sp)%sp,phase=Math.round(ph/sp*8)%8,skin=t.tk==null?'':String(t.tk);
+  const key=[t.k,c1,c2,skin,uq,sq,lq,wq,phase].join('|');
+  let e=tkCacheRead(_tkChassisCache,key);
+  if(!e){
+    const padX=Math.max(4,Math.ceil(lq*.15)),padY=Math.max(4,Math.ceil(wq*.24)),cw=Math.ceil(lq*2+padX*2),ch=Math.ceil(wq*2+padY*2),cv=document.createElement('canvas');
+    cv.width=cw;cv.height=ch;const g=cv.getContext('2d');
+    if(!g)return tkChassis(c,u,t,c1,c2,s,l,w);
+    g.translate(cw/2,ch/2);
+    const spq=Math.max(3,uq*.24*sq),fake={k:t.k,x:((phase+.5)/8)*spq,y:0,a:0,tk:t.tk};
+    tkChassis(g,uq,fake,c1,c2,sq,lq,wq);
+    e=tkCacheWrite(_tkChassisCache,key,{canvas:cv,ox:cw/2,oy:ch/2},160);
+  }
+  c.drawImage(e.canvas,-e.ox,-e.oy);
+}
+function tkDrawTurret(c,u,t,c1,c2,s,l,w,bl2,bw2){
+  if(typeof document==='undefined'||!t)return tkTurret(c,u,t,c1,c2,s,l,w,bl2,bw2);
+  const uq=Math.round(u*2)/2,sq=Math.round(s*100)/100,lq=Math.round(l*2)/2,wq=Math.round(w*2)/2,blq=Math.round(bl2*2)/2,bwq=Math.round(bw2*2)/2,skin=t.tk==null?'':String(t.tk);
+  const key=[t.k,c1,c2,skin,uq,sq,lq,wq,blq,bwq].join('|');
+  let e=tkCacheRead(_tkTurretCache,key);
+  if(!e){
+    const ts=t.k==2?1.1:t.k==1?.86:t.k==5?1.08:1,R=wq*.56*ts,pad=Math.max(4,Math.ceil(uq*.12)),left=-R*1.4-pad,right=Math.max(blq+bwq*.6,lq,R*1.2)+pad,halfH=Math.max(R*1.18,bwq*1.9,wq*.62)+pad,cw=Math.ceil(right-left),ch=Math.ceil(halfH*2),cv=document.createElement('canvas');
+    cv.width=cw;cv.height=ch;const g=cv.getContext('2d');
+    if(!g)return tkTurret(c,u,t,c1,c2,s,l,w,bl2,bw2);
+    const ox=-left,oy=ch/2;g.translate(ox,oy);
+    tkTurret(g,uq,{k:t.k,tk:t.tk,t:0},c1,c2,sq,lq,wq,blq,bwq);
+    e=tkCacheWrite(_tkTurretCache,key,{canvas:cv,ox,oy},128);
+  }
+  c.drawImage(e.canvas,-e.ox,-e.oy);
+}
+
 function drawTank(ctx,u,t,c1,c2,s){
   ctx.save();ctx.translate(t.x,t.y);
   if(t.k==12){
@@ -1778,7 +1815,7 @@ function drawTank(ctx,u,t,c1,c2,s){
   {const l0=u*.95*s,w0=u*.72*s,so=u*.16*Math.sqrt(s);ctx.save();ctx.translate(so*.7,so);ctx.rotate(t.a);ctx.fillStyle='rgba(0,0,0,.28)';tkRR(ctx,-l0*1.04,-w0*1.04,l0*2.08,w0*2.08,w0*.35);ctx.fill();ctx.restore()}
   ctx.rotate(t.a);
   const l=u*.95*s,w=u*.72*s;
-  tkChassis(ctx,u,t,c1,c2,s,l,w);
+  tkDrawChassis(ctx,u,t,c1,c2,s,l,w);
   if(t.k==4){
     ctx.save();ctx.beginPath();ctx.rect(-l*.85,-w*.62,l*1.7,w*1.24);ctx.clip();
     ctx.strokeStyle='#0009';ctx.lineWidth=w*.32;
@@ -1853,7 +1890,7 @@ function drawTank(ctx,u,t,c1,c2,s){
   if(t.k==8){ctx.strokeStyle='#8fd3ff';ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,w*1.5,-1,1);ctx.stroke()}
   let bl2=l*1.25,bw2=w*.3;
   if(t.k==3){bl2=l*1.6;bw2=w*.2} else if(t.k==7){bl2=l*.65;bw2=w*.52} else if(t.k==2){bw2=w*.42} else if(t.k==10){bl2=l*.75;bw2=w*.4} else if(t.k==11){bl2=l*1.4;bw2=w*.36} else if(t.k==1){bl2=l*1.05;bw2=w*.26}
-  tkTurret(ctx,u,t,c1,c2,s,l,w,bl2,bw2);
+  tkDrawTurret(ctx,u,t,c1,c2,s,l,w,bl2,bw2);
   if(t.k==10){
     const tm=performance.now()/1000+(t.id||0),cast=t.st2===1;
     ctx.fillStyle='#1a0c2a';ctx.beginPath();ctx.arc(0,0,w*.44,0,6.28);ctx.fill();
