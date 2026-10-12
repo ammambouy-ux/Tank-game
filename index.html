@@ -1698,7 +1698,7 @@ function tkDrawTurret(c,u,t,c1,c2,s,l,w,bl2,bw2){
     if(!g)return tkTurret(c,u,t,c1,c2,s,l,w,bl2,bw2);
     const ox=-left,oy=ch/2;g.setTransform(pr,0,0,pr,pr*ox,pr*oy);
     tkTurret(g,uq,{k:t.k,tk:t.tk,t:0},c1,c2,sq,lq,wq,blq,bwq);
-    e=tkCacheWrite(_tkTurretCache,key,{canvas:cv,ox,oy},128);
+    e=tkCacheWrite(_tkTurretCache,key,{canvas:cv,ox,oy,w:cw,h:ch},128);
   }
   c.drawImage(e.canvas,-e.ox,-e.oy,e.w,e.h);
 }
