@@ -1669,37 +1669,38 @@ function tkTurret(c,u,t,c1,c2,s,l,w,bl2,bw2){
 const _tkChassisCache=new Map(),_tkTurretCache=new Map();
 function tkCacheRead(cache,key){const v=cache.get(key);if(v){cache.delete(key);cache.set(key,v)}return v}
 function tkCacheWrite(cache,key,value,max){cache.set(key,value);while(cache.size>max){const first=cache.keys().next().value,old=cache.get(first);cache.delete(first);if(old&&old.canvas){old.canvas.width=1;old.canvas.height=1}}return value}
+function tkCacheScale(c){try{if(typeof c.getTransform==='function'){const m=c.getTransform();return Math.max(1,Math.min(2,Math.round(Math.hypot(m.a,m.b))))}}catch(e){}return 1}
 function tkDrawChassis(c,u,t,c1,c2,s,l,w){
   if(typeof document==='undefined'||!t)return tkChassis(c,u,t,c1,c2,s,l,w);
-  const uq=Math.round(u*2)/2,sq=Math.round(s*100)/100,lq=Math.round(l*2)/2,wq=Math.round(w*2)/2;
+  const pr=tkCacheScale(c),uq=Math.round(u*2)/2,sq=Math.round(s*100)/100,lq=Math.round(l*2)/2,wq=Math.round(w*2)/2;
   const sp=Math.max(3,u*.24*s),ca=Math.cos(t.a||0),sa=Math.sin(t.a||0),ph=((((t.x||0)*ca+(t.y||0)*sa)%sp)+sp)%sp,phase=Math.round(ph/sp*8)%8,skin=t.tk==null?'':String(t.tk);
-  const key=[t.k,c1,c2,skin,uq,sq,lq,wq,phase].join('|');
+  const key=[t.k,c1,c2,skin,uq,sq,lq,wq,phase,pr].join('|');
   let e=tkCacheRead(_tkChassisCache,key);
   if(!e){
     const padX=Math.max(4,Math.ceil(lq*.15)),padY=Math.max(4,Math.ceil(wq*.24)),cw=Math.ceil(lq*2+padX*2),ch=Math.ceil(wq*2+padY*2),cv=document.createElement('canvas');
-    cv.width=cw;cv.height=ch;const g=cv.getContext('2d');
+    cv.width=Math.ceil(cw*pr);cv.height=Math.ceil(ch*pr);const g=cv.getContext('2d');
     if(!g)return tkChassis(c,u,t,c1,c2,s,l,w);
-    g.translate(cw/2,ch/2);
+    g.setTransform(pr,0,0,pr,pr*cw/2,pr*ch/2);
     const spq=Math.max(3,uq*.24*sq),fake={k:t.k,x:((phase+.5)/8)*spq,y:0,a:0,tk:t.tk};
     tkChassis(g,uq,fake,c1,c2,sq,lq,wq);
-    e=tkCacheWrite(_tkChassisCache,key,{canvas:cv,ox:cw/2,oy:ch/2},160);
+    e=tkCacheWrite(_tkChassisCache,key,{canvas:cv,ox:cw/2,oy:ch/2,w:cw,h:ch},160);
   }
-  c.drawImage(e.canvas,-e.ox,-e.oy);
+  c.drawImage(e.canvas,-e.ox,-e.oy,e.w,e.h);
 }
 function tkDrawTurret(c,u,t,c1,c2,s,l,w,bl2,bw2){
   if(typeof document==='undefined'||!t)return tkTurret(c,u,t,c1,c2,s,l,w,bl2,bw2);
-  const uq=Math.round(u*2)/2,sq=Math.round(s*100)/100,lq=Math.round(l*2)/2,wq=Math.round(w*2)/2,blq=Math.round(bl2*2)/2,bwq=Math.round(bw2*2)/2,skin=t.tk==null?'':String(t.tk);
-  const key=[t.k,c1,c2,skin,uq,sq,lq,wq,blq,bwq].join('|');
+  const pr=tkCacheScale(c),uq=Math.round(u*2)/2,sq=Math.round(s*100)/100,lq=Math.round(l*2)/2,wq=Math.round(w*2)/2,blq=Math.round(bl2*2)/2,bwq=Math.round(bw2*2)/2,skin=t.tk==null?'':String(t.tk);
+  const key=[t.k,c1,c2,skin,uq,sq,lq,wq,blq,bwq,pr].join('|');
   let e=tkCacheRead(_tkTurretCache,key);
   if(!e){
     const ts=t.k==2?1.1:t.k==1?.86:t.k==5?1.08:1,R=wq*.56*ts,pad=Math.max(4,Math.ceil(uq*.12)),left=-R*1.4-pad,right=Math.max(blq+bwq*.6,lq,R*1.2)+pad,halfH=Math.max(R*1.18,bwq*1.9,wq*.62)+pad,cw=Math.ceil(right-left),ch=Math.ceil(halfH*2),cv=document.createElement('canvas');
-    cv.width=cw;cv.height=ch;const g=cv.getContext('2d');
+    cv.width=Math.ceil(cw*pr);cv.height=Math.ceil(ch*pr);const g=cv.getContext('2d');
     if(!g)return tkTurret(c,u,t,c1,c2,s,l,w,bl2,bw2);
-    const ox=-left,oy=ch/2;g.translate(ox,oy);
+    const ox=-left,oy=ch/2;g.setTransform(pr,0,0,pr,pr*ox,pr*oy);
     tkTurret(g,uq,{k:t.k,tk:t.tk,t:0},c1,c2,sq,lq,wq,blq,bwq);
     e=tkCacheWrite(_tkTurretCache,key,{canvas:cv,ox,oy},128);
   }
-  c.drawImage(e.canvas,-e.ox,-e.oy);
+  c.drawImage(e.canvas,-e.ox,-e.oy,e.w,e.h);
 }
 
 function drawTank(ctx,u,t,c1,c2,s){
