@@ -8,6 +8,16 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.CancellationSignal;
+import androidx.credentials.Credential;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialException;
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -531,6 +541,53 @@ public class MainActivity extends Activity {
 
 
     private final class LanBridge {
+
+        @JavascriptInterface
+        public void signInWithGoogle(String webClientId) {
+            final String clientId = webClientId == null ? "" : webClientId.trim();
+            runOnUiThread(() -> {
+                if (clientId.isEmpty() || !clientId.endsWith(".apps.googleusercontent.com")) {
+                    deliverGoogleError("Google-вход ещё не настроен.");
+                    return;
+                }
+                try {
+                    CredentialManager manager = CredentialManager.create(MainActivity.this);
+                    GetGoogleIdOption googleOption = new GetGoogleIdOption.Builder()
+                            .setFilterByAuthorizedAccounts(false)
+                            .setServerClientId(clientId)
+                            .setAutoSelectEnabled(false)
+                            .build();
+                    GetCredentialRequest request = new GetCredentialRequest.Builder()
+                            .addCredentialOption(googleOption)
+                            .build();
+                    manager.getCredentialAsync(MainActivity.this, request, new CancellationSignal(), getMainExecutor(),
+                            new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                                @Override
+                                public void onResult(GetCredentialResponse response) {
+                                    try {
+                                        Credential credential = response.getCredential();
+                                        if (credential instanceof CustomCredential
+                                                && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
+                                            GoogleIdTokenCredential google = GoogleIdTokenCredential.createFrom(((CustomCredential) credential).getData());
+                                            deliverGoogleToken(google.getIdToken());
+                                        } else {
+                                            deliverGoogleError("Google не вернул ID-токен.");
+                                        }
+                                    } catch (Exception e) {
+                                        deliverGoogleError("Не удалось обработать аккаунт Google.");
+                                    }
+                                }
+                                @Override
+                                public void onError(GetCredentialException e) {
+                                    deliverGoogleError("Вход через Google отменён или не удался.");
+                                }
+                            });
+                } catch (Exception e) {
+                    deliverGoogleError("Не удалось запустить вход через Google.");
+                }
+            });
+        }
+
         @JavascriptInterface
         public void requestLanAccess() {
             runOnUiThread(() -> {
@@ -590,6 +647,22 @@ public class MainActivity extends Activity {
                 });
             });
         }
+    }
+
+    private void deliverGoogleToken(String token) {
+        if (webView == null || token == null || token.isEmpty()) return;
+        String quoted = JSONObject.quote(token);
+        handler.post(() -> {
+            if (webView != null) webView.evaluateJavascript("window.onSteelFrontierGoogleToken&&window.onSteelFrontierGoogleToken(" + quoted + ");", null);
+        });
+    }
+
+    private void deliverGoogleError(String message) {
+        if (webView == null) return;
+        String quoted = JSONObject.quote(message == null ? "Google sign-in failed." : message);
+        handler.post(() -> {
+            if (webView != null) webView.evaluateJavascript("window.onSteelFrontierGoogleError&&window.onSteelFrontierGoogleError(" + quoted + ");", null);
+        });
     }
 
     private void deliverLanPermission(boolean granted) {

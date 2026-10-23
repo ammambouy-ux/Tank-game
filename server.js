@@ -2,6 +2,8 @@
 // Поддерживает кратковременное восстановление WebSocket-соединения без выброса игрока из боя.
 const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { WebSocketServer } = require('ws');
+const { Pool } = require('pg');
+const { OAuth2Client } = require('google-auth-library');
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = String(process.env.ADMIN_KEY || '').trim();
 const adminSessions = new Map();
@@ -125,7 +127,158 @@ async function handleAdmin(req, res) {
   sendJson(res,404,{ok:false,error:'not found'}); return true;
 }
 
+
+// ================= Steel Frontier account API =================
+const AUTH_GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || '').trim();
+const authGoogleClient = new OAuth2Client();
+const authPool = process.env.DATABASE_URL ? new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: /localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL) ? false : { rejectUnauthorized: false },
+  max: 5, idleTimeoutMillis: 30000, connectionTimeoutMillis: 7000
+}) : null;
+let authSchemaPromise = null;
+const authAttempts = new Map();
+const AUTH_RATE_WINDOW = 15 * 60 * 1000;
+const AUTH_RATE_LIMIT = 30;
+const AUTH_SESSION_DAYS = 30;
+function authCors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader('Access-Control-Max-Age', '600');
+}
+function authLimited(req) {
+  const now=Date.now(), key=String(req.socket && req.socket.remoteAddress || 'unknown');
+  let item=authAttempts.get(key);
+  if(!item||now-item.start>AUTH_RATE_WINDOW)item={start:now,count:0};
+  item.count++;authAttempts.set(key,item);
+  if(authAttempts.size>5000)for(const [k,v] of authAttempts)if(now-v.start>AUTH_RATE_WINDOW)authAttempts.delete(k);
+  return item.count>AUTH_RATE_LIMIT;
+}
+async function ensureAuthSchema() {
+  if(!authPool)throw new Error('AUTH_DATABASE_NOT_CONFIGURED');
+  if(!authSchemaPromise)authSchemaPromise=(async()=>{
+    await authPool.query("CREATE TABLE IF NOT EXISTS sf_users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, nickname VARCHAR(24) NOT NULL, password_salt TEXT, password_hash TEXT, google_sub TEXT UNIQUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+    await authPool.query("CREATE TABLE IF NOT EXISTS sf_auth_sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES sf_users(id) ON DELETE CASCADE, expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+    await authPool.query("CREATE INDEX IF NOT EXISTS sf_auth_sessions_user_idx ON sf_auth_sessions(user_id)");
+    await authPool.query("CREATE INDEX IF NOT EXISTS sf_auth_sessions_expiry_idx ON sf_auth_sessions(expires_at)");
+    await authPool.query("CREATE TABLE IF NOT EXISTS sf_cloud_saves (user_id TEXT PRIMARY KEY REFERENCES sf_users(id) ON DELETE CASCADE, save_json JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+  })().catch(err=>{authSchemaPromise=null;throw err;});
+  return authSchemaPromise;
+}
+function authEmail(v){const s=String(v||'').trim().toLowerCase();return s.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)?s:'';}
+function authNickname(v,fallback){return String(v||'').replace(/[<>&"'\x60]/g,'').replace(/\s+/g,' ').trim().slice(0,24)||fallback||'Player';}
+function authPublicUser(row){return{id:row.id,email:row.email,nickname:row.nickname,createdAt:row.created_at||null};}
+function authTokenHash(t){return crypto.createHash('sha256').update(String(t)).digest('hex');}
+function authScrypt(password,salt){return new Promise((resolve,reject)=>crypto.scrypt(password,salt,64,(e,key)=>e?reject(e):resolve(key.toString('hex'))));}
+async function authCreateSession(userId){
+  const token=crypto.randomBytes(32).toString('base64url'),expires=new Date(Date.now()+AUTH_SESSION_DAYS*86400000);
+  await authPool.query('INSERT INTO sf_auth_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[authTokenHash(token),userId,expires.toISOString()]);
+  return token;
+}
+async function authCurrentUser(req){
+  const m=String(req.headers.authorization||'').match(/^Bearer\s+(.+)$/i);if(!m)return null;
+  const token=m[1].trim();if(token.length<32||token.length>256)return null;
+  const r=await authPool.query('SELECT u.id,u.email,u.nickname,u.created_at FROM sf_auth_sessions s JOIN sf_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>NOW()',[authTokenHash(token)]);
+  return r.rows[0]||null;
+}
+function authCleanSave(v){
+  const src=v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const num=x=>{const n=Number(x);return Number.isFinite(n)?Math.max(0,Math.min(1000000000000,Math.floor(n))):0;};
+  let tanks=[];try{tanks=Array.isArray(src.to)?src.to:(typeof src.to==='string'?JSON.parse(src.to):[]);}catch(e){}
+  if(!Array.isArray(tanks))tanks=[];
+  tanks=[...new Set(tanks.filter(x=>typeof x==='string'&&/^[a-zA-Z0-9_-]{1,12}$/.test(x)))].slice(0,128);
+  if(!tanks.includes('std'))tanks.unshift('std');
+  const equipped=typeof src.te==='string'&&/^[a-zA-Z0-9_-]{1,12}$/.test(src.te)?src.te:'std';
+  if(!tanks.includes(equipped))tanks.push(equipped);
+  return{tb:num(src.tb),tc:num(src.tc),to:tanks,te:equipped};
+}
+function authSendError(res,status,error){sendJson(res,status,{ok:false,error:error});}
+async function handleAuth(req,res){
+  const url=new URL(req.url,'http://'+(req.headers.host||'localhost'));
+  if(!url.pathname.startsWith('/api/auth/'))return false;
+  authCors(res);
+  if(req.method==='OPTIONS'){res.writeHead(204);res.end();return true;}
+  if(url.pathname==='/api/auth/config'&&req.method==='GET')return sendJson(res,200,{ok:true,databaseConfigured:!!authPool,googleClientId:AUTH_GOOGLE_CLIENT_ID,googleEnabled:!!AUTH_GOOGLE_CLIENT_ID});
+  const route=url.pathname;
+  if(!['GET','POST','PUT'].includes(req.method)){authSendError(res,405,'Метод не поддерживается');return true;}
+  if(['/api/auth/register','/api/auth/login','/api/auth/google'].includes(route)&&authLimited(req)){authSendError(res,429,'Слишком много попыток. Повторите через 15 минут.');return true;}
+  try{
+    await ensureAuthSchema();
+    if(route==='/api/auth/register'&&req.method==='POST'){
+      const b=await readBody(req),email=authEmail(b.email),password=String(b.password||'');
+      if(!email){authSendError(res,400,'Укажи корректный адрес электронной почты.');return true;}
+      if(password.length<8||password.length>128){authSendError(res,400,'Пароль должен содержать от 8 до 128 символов.');return true;}
+      const nick=authNickname(b.nickname,email.split('@')[0].slice(0,24)),salt=crypto.randomBytes(16).toString('hex'),hash=await authScrypt(password,salt),id=crypto.randomUUID();
+      let r;try{r=await authPool.query('INSERT INTO sf_users(id,email,nickname,password_salt,password_hash) VALUES($1,$2,$3,$4,$5) RETURNING id,email,nickname,created_at',[id,email,nick,salt,hash]);}
+      catch(e){if(e&&e.code==='23505'){authSendError(res,409,'Аккаунт с таким адресом уже существует. Войди в него.');return true;}throw e;}
+      return sendJson(res,201,{ok:true,token:await authCreateSession(id),user:authPublicUser(r.rows[0])});
+    }
+    if(route==='/api/auth/login'&&req.method==='POST'){
+      const b=await readBody(req),email=authEmail(b.email),password=String(b.password||'');
+      if(!email||!password||password.length>128){authSendError(res,400,'Проверь адрес почты и пароль.');return true;}
+      const r=await authPool.query('SELECT id,email,nickname,created_at,password_salt,password_hash FROM sf_users WHERE email=$1',[email]),u=r.rows[0];
+      if(!u||!u.password_hash||!u.password_salt){authSendError(res,401,'Неверная почта или пароль.');return true;}
+      const candidate=Buffer.from(await authScrypt(password,u.password_salt),'hex'),stored=Buffer.from(u.password_hash,'hex');
+      if(candidate.length!==stored.length||!crypto.timingSafeEqual(candidate,stored)){authSendError(res,401,'Неверная почта или пароль.');return true;}
+      return sendJson(res,200,{ok:true,token:await authCreateSession(u.id),user:authPublicUser(u)});
+    }
+    if(route==='/api/auth/google'&&req.method==='POST'){
+      if(!AUTH_GOOGLE_CLIENT_ID){authSendError(res,503,'Вход через Google ещё не настроен на сервере.');return true;}
+      const b=await readBody(req),idToken=String(b.idToken||'');
+      if(!idToken||idToken.length>12000){authSendError(res,400,'Не удалось получить токен Google.');return true;}
+      let payload;try{payload=(await authGoogleClient.verifyIdToken({idToken:idToken,audience:AUTH_GOOGLE_CLIENT_ID})).getPayload();}
+      catch(e){authSendError(res,401,'Не удалось подтвердить аккаунт Google. Попробуй ещё раз.');return true;}
+      if(!payload||!payload.sub||!payload.email||payload.email_verified!==true){authSendError(res,401,'Google не подтвердил адрес электронной почты.');return true;}
+      const email=authEmail(payload.email);if(!email){authSendError(res,400,'Google вернул некорректный адрес почты.');return true;}
+      const found=await authPool.query('SELECT id,email,nickname,created_at,google_sub FROM sf_users WHERE google_sub=$1 OR email=$2 LIMIT 1',[String(payload.sub),email]);
+      let u=found.rows[0];
+      if(u){
+        if(u.google_sub&&u.google_sub!==String(payload.sub)){authSendError(res,409,'Этот адрес уже связан с другим аккаунтом Google.');return true;}
+        if(!u.google_sub){const linked=await authPool.query('UPDATE sf_users SET google_sub=$1,updated_at=NOW() WHERE id=$2 RETURNING id,email,nickname,created_at',[String(payload.sub),u.id]);u=linked.rows[0];}
+      }else{
+        const id=crypto.randomUUID(),nick=authNickname(b.nickname||payload.name,email.split('@')[0]);
+        const created=await authPool.query('INSERT INTO sf_users(id,email,nickname,google_sub) VALUES($1,$2,$3,$4) RETURNING id,email,nickname,created_at',[id,email,nick,String(payload.sub)]);u=created.rows[0];
+      }
+      return sendJson(res,200,{ok:true,token:await authCreateSession(u.id),user:authPublicUser(u)});
+    }
+    if(route==='/api/auth/me'&&req.method==='GET'){
+      const u=await authCurrentUser(req);if(!u){authSendError(res,401,'Сессия завершена. Войди в аккаунт снова.');return true;}
+      return sendJson(res,200,{ok:true,user:authPublicUser(u)});
+    }
+    if(route==='/api/auth/logout'&&req.method==='POST'){
+      const m=String(req.headers.authorization||'').match(/^Bearer\s+(.+)$/i);if(m)await authPool.query('DELETE FROM sf_auth_sessions WHERE token_hash=$1',[authTokenHash(m[1].trim())]);
+      return sendJson(res,200,{ok:true});
+    }
+    if(route==='/api/auth/profile'&&req.method==='POST'){
+      const u=await authCurrentUser(req);if(!u){authSendError(res,401,'Сессия завершена. Войди в аккаунт снова.');return true;}
+      const b=await readBody(req),nick=authNickname(b.nickname,'');
+      if(nick.length<2){authSendError(res,400,'Ник должен содержать минимум 2 символа.');return true;}
+      const r=await authPool.query('UPDATE sf_users SET nickname=$1,updated_at=NOW() WHERE id=$2 RETURNING id,email,nickname,created_at',[nick,u.id]);
+      return sendJson(res,200,{ok:true,user:authPublicUser(r.rows[0])});
+    }
+    if(route==='/api/auth/save'&&req.method==='GET'){
+      const u=await authCurrentUser(req);if(!u){authSendError(res,401,'Сессия завершена. Войди в аккаунт снова.');return true;}
+      const r=await authPool.query('SELECT save_json,updated_at FROM sf_cloud_saves WHERE user_id=$1',[u.id]);
+      return r.rows.length?sendJson(res,200,{ok:true,exists:true,save:r.rows[0].save_json,updatedAt:r.rows[0].updated_at}):sendJson(res,200,{ok:true,exists:false,save:null});
+    }
+    if(route==='/api/auth/save'&&req.method==='PUT'){
+      const u=await authCurrentUser(req);if(!u){authSendError(res,401,'Сессия завершена. Войди в аккаунт снова.');return true;}
+      const b=await readBody(req),save=authCleanSave(b.save);
+      await authPool.query('INSERT INTO sf_cloud_saves(user_id,save_json,updated_at) VALUES($1,$2::jsonb,NOW()) ON CONFLICT(user_id) DO UPDATE SET save_json=EXCLUDED.save_json,updated_at=NOW()',[u.id,JSON.stringify(save)]);
+      return sendJson(res,200,{ok:true,save:save});
+    }
+    authSendError(res,404,'Неизвестный маршрут аккаунта.');return true;
+  }catch(e){
+    if(!authPool||String(e&&e.message||'').includes('AUTH_DATABASE_NOT_CONFIGURED')){authSendError(res,503,'Аккаунты пока не подключены: серверу нужна постоянная PostgreSQL-база.');return true;}
+    console.error('Account API error:',e&&e.message||e);
+    authSendError(res,503,'Сервис аккаунтов временно недоступен. Попробуй позже.');return true;
+  }
+}
+// ==============================================================
+
 const server = http.createServer(async (req, res) => {
+  if (await handleAuth(req,res)) return;
   if (await handleAdmin(req,res)) return;
   const sfxUrl = decodeURIComponent((req.url || '').split('?')[0]);
   if (sfxUrl === '/api/sfx' && req.method === 'GET') {
