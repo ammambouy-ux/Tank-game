@@ -280,7 +280,7 @@ button:disabled{opacity:.5}
 <div id="hud"><span id="wv">ВОЛНА 1</span><div id="hp"><div id="hpf"></div></div><span id="sc">0</span><button id="pb" aria-label="Пауза"><i></i><i></i></button></div>
 <div id="hud2"><span id="lv">УР. 1</span><div id="xp"><div id="xpf"></div></div><span id="hon"></span><span id="lob"></span></div><div id="bfbox"><div id="bft">▾</div><div id="bfl"></div></div><div id="rs"></div><div id="rot"><div style="font-size:64px">📱</div>Поверни телефон<br>горизонтально</div><div id="ld"><div class="box"><b id="ldt">Загрузка…</b><span>•••</span></div></div><div id="bn"></div><div id="cd"></div><div id="pm"><div class="pmbox"><h2>ПАУЗА</h2><p id="pmi" style="margin:0;font-family:system-ui,sans-serif;font-size:14px;max-width:min(80vw,420px)"></p><button id="pr">ВЕРНУТЬСЯ</button><input id="pmpw" maxlength="16" placeholder="Пароль для онлайна (необязательно)"><button id="pmo" class="sc">ОТКРЫТЬ ОНЛАЙН</button><button id="pms" style="display:none">НАЧАТЬ</button><button id="pmc" class="sc" style="display:none">ЗАКРЫТЬ ОНЛАЙН</button><button id="pmn" class="sc">МЕНЮ</button></div></div><div id="ov"><div class="mbg" aria-hidden="true"><i class="mgrid"></i><i class="mdust"></i><i class="mhills"></i><i class="mvig"></i></div><div id="mtop"><div class="mchips"><p id="cn"></p><p id="on">⚪ Онлайн: …</p></div><div class="mtools"><button id="account" class="sc">👤 Аккаунт</button><button id="snd" class="sc">🔊 ЗВУК</button><button id="lang" class="sc">RU</button><button id="adm" class="sc">АДМИН</button></div></div><div id="ovi"><div class="mc mhero"><h1 id="t">СТАЛЬНОЙ<br>РУБЕЖ</h1><div class="mstage"><i class="mradar"></i><i class="mbase"></i><canvas id="mtank" width="450" height="270"></canvas></div></div><div class="mc mside"><nav class="mnav"><button id="go">В БОЙ</button><button id="bb" class="sc">ВРАГИ</button><button id="gg" class="sc">ГАРАЖ</button></nav><p id="m">Левый палец — ехать.<br>Правый палец — целиться и стрелять.<br>Подбирай ремкомплекты «+».</p></div></div><p id="ver"></p></div>
 <div id="rv"><h2 id="rvh">ПОДБИТ</h2><div class="sub" id="rvs"></div><div class="timer"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="rvf" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg><div class="num" id="rvn">30</div></div><div class="reward" id="rvr"></div><div class="btns"><button id="rvad">🎬 СМОТРЕТЬ РЕКЛАМУ</button><button id="rvcoin" class="plain">ПРОДОЛЖИТЬ ЗА <span id="rvc">300</span>💰</button></div><div class="btns alt"><button id="rvend" class="plain">ЗАВЕРШИТЬ</button></div><div class="hint" id="rve"></div><div id="rva" style="display:none">⏳</div><div class="hint" id="rvh2"></div></div><div id="bs"></div><script>
-const GAME_VERSION='1.5.6';
+const GAME_VERSION='1.5.7';
 const ONLINE_SERVER='steel-frontier.onrender.com';
 const CG={sdk:null,env:'disabled',ready:false,mute:false,adblock:false,on:false,instant:false,inviteRoom:'',invitePass:'',joinListener:null,flowStarted:false};
 const SAVE_KEYS=['tb','tc','to','te','snd','lang','pn','srv'];
@@ -2682,188 +2682,109 @@ saveReadyPromise.then(()=>{
 
 <script id="sf-account-script">
 (function(){
-  const A={token:'',user:null,config:{databaseConfigured:false,googleClientId:'',googleEnabled:false},busy:false,googleLoading:false,syncTimer:null};
-  const TOKEN='sf_auth_token',CHOICE='sf_auth_choice';
-  const API=location.hostname==='steel-frontier.onrender.com'?location.origin:'https://steel-frontier.onrender.com';
+  const PROFILE_KEY='sf_local_profile', CHOICE_KEY='sf_auth_choice';
   const el=id=>document.getElementById(id);
-  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const ru=()=>typeof LANG==='undefined'||LANG!=='en';
   const tx=(r,e)=>ru()?r:e;
+  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stored=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}};
   const store=(k,v)=>{try{if(v)localStorage.setItem(k,v);else localStorage.removeItem(k)}catch(e){}};
-  function status(message,type){const e=el('sfAuthStatus');if(e){e.textContent=message||'';e.className='sf-status'+(type?' '+type:'');}}
-  async function request(path,options){
-    options=options||{};const headers=Object.assign({'Content-Type':'application/json'},options.headers||{});
-    if(A.token)headers.Authorization='Bearer '+A.token;
-    const response=await fetch(API+'/api/auth/'+path,Object.assign({},options,{headers:headers,cache:'no-store'}));
-    let data={};try{data=await response.json()}catch(e){}
-    if(!response.ok||data.ok===false)throw new Error(data.error||tx('Запрос не выполнен.','Request failed.'));
-    return data;
+  let profile=null;
+  function localId(){
+    try{if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID()}catch(e){}
+    return 'sf-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
   }
-  function localProgress(){
-    let tanks=['std'];try{tanks=Array.isArray(SAVE.to)?SAVE.to:JSON.parse(SAVE.to||'["std"]')}catch(e){}
-    if(!Array.isArray(tanks))tanks=['std'];
-    tanks=[...new Set(tanks.filter(v=>typeof v==='string'&&/^[a-zA-Z0-9_-]{1,12}$/.test(v)))];
-    if(!tanks.includes('std'))tanks.unshift('std');
-    let equipId=String(SAVE.te||'std');if(!tanks.includes(equipId))equipId='std';
-    return{tb:Math.max(0,Number(SAVE.tb)||0),tc:Math.max(0,Number(SAVE.tc)||0),to:tanks,te:equipId};
+  function readProfile(){
+    try{
+      const value=JSON.parse(stored(PROFILE_KEY)||'null');
+      if(!value||typeof value!=='object'||Array.isArray(value))return null;
+      const nickname=String(value.nickname||'').replace(/[<>&"'\x60]/g,'').trim().slice(0,14);
+      return nickname.length>=2?{id:String(value.id||''),nickname,createdAt:String(value.createdAt||'')}:null;
+    }catch(e){return null;}
   }
-  function merge(local,cloud){
-    if(!cloud||typeof cloud!=='object')return local;
-    const remote=Array.isArray(cloud.to)?cloud.to:[];
-    const tanks=[...new Set(['std',...local.to,...remote].filter(v=>typeof v==='string'&&/^[a-zA-Z0-9_-]{1,12}$/.test(v)))].slice(0,128);
-    const equipped=tanks.includes(local.te)?local.te:(tanks.includes(cloud.te)?cloud.te:'std');
-    return{tb:Math.max(local.tb,Number(cloud.tb)||0),tc:Math.max(local.tc,Number(cloud.tc)||0),to:tanks,te:equipped};
+  function writeProfile(nickname){
+    profile={id:profile&&profile.id||localId(),nickname,createdAt:profile&&profile.createdAt||new Date().toISOString()};
+    store(PROFILE_KEY,JSON.stringify(profile));
+    store(CHOICE_KEY,'account');
+    myName=profile.nickname;
+    persistSet('pn',profile.nickname);
+    updateButton();
   }
-  function applyProgress(save){
-    save=merge(save||localProgress(),null);
-    persistSet('tb',String(save.tb));persistSet('tc',String(save.tc));persistSet('to',JSON.stringify(save.to));persistSet('te',save.te);
-    try{best=Number(save.tb)||0;coins=Number(save.tc)||0;owned=save.to.slice();equip=save.te}catch(e){}
-    try{if(typeof applySaveState==='function')applySaveState()}catch(e){}
-    try{if(typeof coinLabel==='function')coinLabel()}catch(e){}
+  function setStatus(message,type){
+    const node=el('sfAuthStatus');if(!node)return;
+    node.textContent=message||'';node.className='sf-status'+(type?' '+type:'');
   }
-  async function sync(){
-    if(!A.token||!A.config.databaseConfigured)return;
-    const local=localProgress(),remote=await request('save',{method:'GET'});
-    if(!remote.exists||!remote.save){await request('save',{method:'PUT',body:JSON.stringify({save:local})});return;}
-    // Existing account's cloud save is canonical. Never restore spent coins or
-    // stale unlocks from another device during ordinary login.
-    applyProgress(remote.save);
-  }
-  async function saveCloud(){if(A.token&&A.config.databaseConfigured)await request('save',{method:'PUT',body:JSON.stringify({save:localProgress()})});}
-  function scheduleSync(){
-    if(!A.token||!A.config.databaseConfigured)return;
-    if(A.syncTimer)clearTimeout(A.syncTimer);
-    A.syncTimer=setTimeout(()=>saveCloud().catch(e=>console.warn('Steel Frontier cloud save:',e.message)),1800);
-  }
-  if(typeof persistSet==='function'){
-    const original=persistSet;
-    persistSet=function(k,v){original(k,v);if(['tb','tc','to','te'].includes(k))scheduleSync();};
-  }
-  function close(){const e=el('sfAuth');if(e)e.style.display='none';}
-  function open(mode){render(mode||(A.user?'profile':(stored(CHOICE)==='account'?'login':'welcome')));}
-  function busy(value){A.busy=!!value;document.querySelectorAll('#sfAuth button').forEach(b=>{if(b.dataset.noBusy!=='1')b.disabled=!!value;});}
-  function googleMarkup(){
-    if(window.AndroidLan)return '<div class="sf-google"><button type="button" id="sfGoogleNative">◎ '+tx('Продолжить с Google','Continue with Google')+'</button></div>';
-    return '<div class="sf-google"><div id="sfGoogleRender"></div><button type="button" class="sf-secondary" id="sfGoogleFallback">'+tx('Продолжить с Google','Continue with Google')+'</button></div>';
+  function show(){const modal=el('sfAuth');if(modal)modal.style.display='flex';}
+  function close(){const modal=el('sfAuth');if(modal)modal.style.display='none';}
+  function updateButton(){
+    const button=el('account');if(!button)return;
+    button.textContent=profile?'👤 '+profile.nickname:'👤 '+tx('Гость','Guest');
+    button.title=profile?tx('Локальный профиль на этом устройстве','Local profile on this device'):tx('Гостевой профиль','Guest profile');
   }
   function render(mode){
-    const c=el('sfAuthContent');if(!c)return;status('');
-    let h='';
-    if(mode==='register'){
-      h='<h2 id="sfAuthTitle">'+tx('Создать аккаунт','Create account')+'</h2><p class="sf-sub">'+tx('Сохрани прогресс и продолжай на другом устройстве.','Save progress and continue on another device.')+'</p>'+googleMarkup()+
-      '<div class="sf-separator">'+tx('или по электронной почте','or use email')+'</div><form id="sfRegisterForm" class="sf-form">'+
-      '<input name="nickname" autocomplete="nickname" maxlength="24" placeholder="'+tx('Никнейм','Nickname')+'" required><input name="email" type="email" autocomplete="email" maxlength="254" placeholder="Email" required><input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="'+tx('Пароль (минимум 8 символов)','Password (8 characters minimum)')+'" required><button type="submit">'+tx('Создать аккаунт','Create account')+'</button></form>'+
-      '<div class="sf-links"><button class="sf-secondary" id="sfToLogin">'+tx('У меня уже есть аккаунт','I already have an account')+'</button><button class="sf-plain" id="sfBackWelcome">'+tx('Назад','Back')+'</button></div>';
-    }else if(mode==='login'){
-      h='<h2 id="sfAuthTitle">'+tx('Вход в аккаунт','Sign in')+'</h2><p class="sf-sub">'+tx('Войди, чтобы восстановить облачный прогресс.','Sign in to restore cloud progress.')+'</p>'+googleMarkup()+
-      '<div class="sf-separator">'+tx('или по электронной почте','or use email')+'</div><form id="sfLoginForm" class="sf-form">'+
-      '<input name="email" type="email" autocomplete="email" maxlength="254" placeholder="Email" required><input name="password" type="password" autocomplete="current-password" maxlength="128" placeholder="'+tx('Пароль','Password')+'" required><button type="submit">'+tx('Войти','Sign in')+'</button></form>'+
-      '<div class="sf-links"><button class="sf-secondary" id="sfToRegister">'+tx('Создать аккаунт','Create account')+'</button><button class="sf-plain" id="sfBackWelcome">'+tx('Назад','Back')+'</button></div>';
-    }else if(mode==='profile'&&A.user){
-      h='<h2 id="sfAuthTitle">'+tx('Профиль игрока','Player profile')+'</h2><p class="sf-sub">'+tx('Прогресс синхронизируется с облаком при подключении к интернету.','Progress syncs to the cloud when connected.')+'</p>'+
-      '<div class="sf-profile"><div class="sf-profileline"><span class="sf-label">'+tx('Тип профиля','Profile type')+'</span><span class="sf-value">'+tx('Аккаунт','Account')+'</span></div><div class="sf-profileline"><span class="sf-label">Email</span><span class="sf-value">'+esc(A.user.email)+'</span></div>'+
-      '<form id="sfProfileForm" class="sf-form"><label class="sf-label" for="sfNickname">'+tx('Никнейм','Nickname')+'</label><input id="sfNickname" name="nickname" autocomplete="nickname" minlength="2" maxlength="24" value="'+esc(A.user.nickname)+'" required><button type="submit">'+tx('Сохранить ник','Save nickname')+'</button></form>'+
-      '<button id="sfSyncNow" class="sf-secondary">'+tx('Синхронизировать прогресс','Sync progress')+'</button><button id="sfLogout" class="sf-secondary">'+tx('Выйти из аккаунта','Sign out')+'</button><button id="sfCloseProfile" class="sf-plain">'+tx('Вернуться в игру','Return to game')+'</button></div>';
+    const content=el('sfAuthContent');if(!content)return;setStatus('');
+    let markup='';
+    if(mode==='create'){
+      const suggested=String(myName||SAVE.pn||'').slice(0,14);
+      markup='<h2 id="sfAuthTitle">'+tx('Создать профиль','Create profile')+'</h2>'+
+        '<p class="sf-sub">'+tx('Выбери никнейм. Профиль и прогресс будут храниться на этом устройстве.','Choose a nickname. Your profile and progress will be stored on this device.')+'</p>'+
+        '<form id="sfLocalCreate" class="sf-form"><input name="nickname" autocomplete="nickname" minlength="2" maxlength="14" value="'+esc(suggested)+'" placeholder="'+tx('Никнейм','Nickname')+'" required>'+
+        '<button type="submit">'+tx('Сохранить профиль','Save profile')+'</button></form>'+
+        '<div class="sf-links"><button class="sf-plain" id="sfBack">'+tx('Назад','Back')+'</button></div>'+
+        '<p class="sf-small">'+tx('Без пароля и облака. Профиль доступен только в этом браузере или установленном приложении.','No password or cloud account. The profile stays in this browser or installed app.')+'</p>';
+    }else if(mode==='profile'&&profile){
+      markup='<h2 id="sfAuthTitle">'+tx('Мой профиль','My profile')+'</h2>'+
+        '<p class="sf-sub">'+tx('Локальный профиль · сохранён на этом устройстве','Local profile · saved on this device')+'</p>'+
+        '<div class="sf-profile"><div class="sf-profileline"><span class="sf-label">'+tx('Статус','Status')+'</span><span class="sf-value">'+tx('Локальный профиль','Local profile')+'</span></div>'+
+        '<form id="sfLocalEdit" class="sf-form"><label class="sf-label" for="sfNickname">'+tx('Никнейм','Nickname')+'</label>'+
+        '<input id="sfNickname" name="nickname" autocomplete="nickname" minlength="2" maxlength="14" value="'+esc(profile.nickname)+'" required>'+
+        '<button type="submit">'+tx('Сохранить никнейм','Save nickname')+'</button></form>'+
+        '<button id="sfDeleteProfile" class="sf-secondary">'+tx('Удалить профиль','Delete profile')+'</button>'+
+        '<button id="sfCloseProfile" class="sf-plain">'+tx('Вернуться в игру','Return to game')+'</button></div>'+
+        '<p class="sf-small">'+tx('Удаление профиля не удаляет игровой прогресс.','Deleting the profile does not delete game progress.')+'</p>';
     }else{
-      h='<h2 id="sfAuthTitle">'+tx('Добро пожаловать','Welcome back')+'</h2><p class="sf-sub">'+tx('Сохрани прогресс Steel Frontier и играй на разных устройствах. Регистрация не обязательна.','Save your Steel Frontier progress and play across devices. Registration is optional.')+'</p>'+
-      googleMarkup()+'<button id="sfCreateAccount" style="margin-top:12px">'+tx('Создать аккаунт','Create account')+'</button><button id="sfSignIn" class="sf-secondary" style="margin-top:10px">'+tx('У меня уже есть аккаунт','I already have an account')+'</button>'+
-      '<div class="sf-links"><button id="sfGuest" class="sf-plain">'+tx('Играть как гость','Play as guest')+'</button></div><p class="sf-small">'+tx('Гостевой прогресс хранится на этом устройстве. Привяжи аккаунт позже, чтобы синхронизировать его.','Guest progress stays on this device. Link an account later to sync it.')+'</p>';
+      markup='<h2 id="sfAuthTitle">'+tx('Добро пожаловать','Welcome')+'</h2>'+
+        '<p class="sf-sub">'+tx('Создай локальный профиль или сразу начинай игру. Регистрация не обязательна.','Create a local profile or jump straight into the game. Registration is optional.')+'</p>'+
+        '<button id="sfCreateProfile">'+tx('Создать профиль','Create profile')+'</button>'+
+        '<button id="sfGuest" class="sf-secondary" style="margin-top:10px">'+tx('Играть как гость','Play as guest')+'</button>'+
+        '<p class="sf-small">'+tx('Профиль и прогресс остаются на этом устройстве. Для переноса на другое устройство понадобится резервная копия.','Your profile and progress stay on this device. Moving to another device requires a backup.')+'</p>';
     }
-    c.innerHTML=h;el('sfAuth').style.display='flex';
-    if(mode==='register'){el('sfToLogin').onclick=()=>render('login');el('sfBackWelcome').onclick=()=>render('welcome');el('sfRegisterForm').onsubmit=register;}
-    else if(mode==='login'){el('sfToRegister').onclick=()=>render('register');el('sfBackWelcome').onclick=()=>render('welcome');el('sfLoginForm').onsubmit=login;}
-    else if(mode==='profile'&&A.user){
-      el('sfCloseProfile').onclick=close;el('sfLogout').onclick=logout;
-      el('sfSyncNow').onclick=async()=>{busy(true);try{await sync();status(tx('Прогресс синхронизирован.','Progress synced.'),'ok');}catch(e){status(e.message,'err');}finally{busy(false);}};
-      el('sfProfileForm').onsubmit=updateProfile;
-    }else{el('sfCreateAccount').onclick=()=>render('register');el('sfSignIn').onclick=()=>render('login');el('sfGuest').onclick=()=>{store(CHOICE,'guest');close();};}
-    const native=el('sfGoogleNative');if(native)native.onclick=googleNative;
-    const fallback=el('sfGoogleFallback');if(fallback)fallback.onclick=()=>status(!A.config.googleClientId?tx('Google-вход пока не настроен.','Google Sign-In is not configured yet.'):tx('Для Google-входа требуется настройка браузера OAuth.','Google Sign-In needs browser OAuth setup.'),'err');
-    setupGoogleWeb();
-    if(!A.config.databaseConfigured)status(tx('Аккаунты ещё не подключены к постоянной базе данных. Пока можно играть гостем.','Accounts are not connected to a persistent database yet. Guest play is available.'),'err');
+    content.innerHTML=markup;show();
+    if(mode==='create'){
+      el('sfLocalCreate').onsubmit=event=>{
+        event.preventDefault();
+        const nickname=String(new FormData(event.currentTarget).get('nickname')||'').replace(/[<>&"'\x60]/g,'').trim().slice(0,14);
+        if(nickname.length<2){setStatus(tx('Никнейм должен содержать минимум 2 символа.','Nickname must contain at least 2 characters.'),'err');return;}
+        writeProfile(nickname);close();
+      };
+      el('sfBack').onclick=()=>render(profile?'profile':'welcome');
+    }else if(mode==='profile'&&profile){
+      el('sfCloseProfile').onclick=close;
+      el('sfLocalEdit').onsubmit=event=>{
+        event.preventDefault();
+        const nickname=String(new FormData(event.currentTarget).get('nickname')||'').replace(/[<>&"'\x60]/g,'').trim().slice(0,14);
+        if(nickname.length<2){setStatus(tx('Никнейм должен содержать минимум 2 символа.','Nickname must contain at least 2 characters.'),'err');return;}
+        writeProfile(nickname);render('profile');setStatus(tx('Никнейм сохранён.','Nickname saved.'),'ok');
+      };
+      el('sfDeleteProfile').onclick=()=>{
+        if(!window.confirm(tx('Удалить локальный профиль? Игровой прогресс останется на устройстве.','Delete this local profile? Game progress will remain on the device.')))return;
+        profile=null;store(PROFILE_KEY,'');store(CHOICE_KEY,'guest');updateButton();close();
+      };
+    }else{
+      el('sfCreateProfile').onclick=()=>render('create');
+      el('sfGuest').onclick=()=>{store(CHOICE_KEY,'guest');close();updateButton();};
+    }
   }
-  async function register(event){
-    event.preventDefault();if(A.busy)return;const data=new FormData(event.currentTarget);
-    busy(true);status(tx('Создаём аккаунт…','Creating account…'));
-    try{const result=await request('register',{method:'POST',body:JSON.stringify({email:String(data.get('email')||'').trim().toLowerCase(),password:String(data.get('password')||''),nickname:String(data.get('nickname')||'').trim()})});await finishLogin(result);}
-    catch(e){status(e.message,'err');}finally{busy(false);}
-  }
-  async function login(event){
-    event.preventDefault();if(A.busy)return;const data=new FormData(event.currentTarget);
-    busy(true);status(tx('Выполняем вход…','Signing in…'));
-    try{const result=await request('login',{method:'POST',body:JSON.stringify({email:String(data.get('email')||'').trim().toLowerCase(),password:String(data.get('password')||'')})});await finishLogin(result);}
-    catch(e){status(e.message,'err');}finally{busy(false);}
-  }
-  async function googleSignIn(idToken){
-    if(!idToken)return;busy(true);status(tx('Проверяем аккаунт Google…','Verifying Google account…'));
-    try{const result=await request('google',{method:'POST',body:JSON.stringify({idToken:idToken})});await finishLogin(result);}
-    catch(e){status(e.message,'err');}finally{busy(false);}
-  }
-  async function finishLogin(result){
-    if(!result||!result.token||!result.user)throw new Error(tx('Сервер вернул некорректный ответ.','The server returned an invalid response.'));
-    A.token=result.token;A.user=result.user;store(TOKEN,A.token);store(CHOICE,'account');
-    try{myName=A.user.nickname||myName;persistSet('pn',myName);await sync();}
-    catch(e){console.warn('Steel Frontier cloud sync:',e.message);}
-    updateAccountButton();close();
-  }
-  async function updateProfile(event){
-    event.preventDefault();if(A.busy)return;const nickname=String(new FormData(event.currentTarget).get('nickname')||'').trim();busy(true);
-    try{const result=await request('profile',{method:'POST',body:JSON.stringify({nickname:nickname})});A.user=result.user;myName=A.user.nickname;persistSet('pn',myName);updateAccountButton();render('profile');status(tx('Никнейм сохранён.','Nickname saved.'),'ok');}
-    catch(e){status(e.message,'err');}finally{busy(false);}
-  }
-  async function logout(){
-    busy(true);try{await request('logout',{method:'POST'});}catch(e){}
-    A.token='';A.user=null;store(TOKEN,'');store(CHOICE,'guest');updateAccountButton();close();busy(false);
-  }
-  function updateAccountButton(){
-    const b=el('account');if(!b)return;
-    b.textContent=A.user?('👤 '+String(A.user.nickname||tx('Аккаунт','Account')).slice(0,14)):'👤 '+tx('Аккаунт','Account');
-    b.title=A.user?(A.user.email||''):tx('Войти или привязать аккаунт','Sign in or link an account');
-  }
-  function setupGoogleWeb(){
-    if(window.AndroidLan)return;
-    const target=el('sfGoogleRender'),fallback=el('sfGoogleFallback');
-    if(!target||!A.config.googleClientId)return;
-    const setup=()=>{
-      if(!window.google||!window.google.accounts||!window.google.accounts.id||!el('sfGoogleRender'))return;
-      try{
-        window.google.accounts.id.initialize({client_id:A.config.googleClientId,callback:r=>googleSignIn(r.credential)});
-        target.innerHTML='';
-        window.google.accounts.id.renderButton(target,{type:'standard',theme:'filled_black',size:'large',text:'continue_with',shape:'rectangular',width:320,locale:ru()?'ru':'en'});
-        if(fallback)fallback.style.display='none';
-      }catch(e){console.warn('Google sign-in setup:',e);}
-    };
-    if(window.google&&window.google.accounts){setup();return;}
-    if(A.googleLoading)return;A.googleLoading=true;
-    const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.defer=true;s.onload=setup;
-    s.onerror=()=>status(tx('Не удалось загрузить Google-вход. Проверь интернет.','Could not load Google Sign-In. Check your connection.'),'err');
-    document.head.appendChild(s);
-  }
-  function googleNative(){
-    if(!A.config.googleClientId){status(tx('Google-вход пока не настроен.','Google Sign-In is not configured yet.'),'err');return;}
-    if(!A.config.databaseConfigured){status(tx('Сначала нужно подключить серверную базу аккаунтов.','The account database must be connected first.'),'err');return;}
-    if(!window.AndroidLan||typeof window.AndroidLan.signInWithGoogle!=='function'){status(tx('Нативный Google-вход недоступен в этой сборке.','Native Google Sign-In is unavailable in this build.'),'err');return;}
-    status(tx('Открываем выбор Google-аккаунта…','Opening Google account chooser…'));
-    window.AndroidLan.signInWithGoogle(A.config.googleClientId);
-  }
-  window.onSteelFrontierGoogleToken=googleSignIn;
-  window.onSteelFrontierGoogleError=message=>status(String(message||tx('Не удалось войти через Google.','Google sign-in failed.')),'err');
-  async function loadConfig(){
-    try{const r=await fetch(API+'/api/auth/config',{cache:'no-store'});const d=await r.json();if(r.ok)A.config=d;}catch(e){}
-  }
+  function open(){render(profile?'profile':'welcome');}
   async function boot(){
     if(typeof saveReadyPromise!=='undefined')try{await saveReadyPromise}catch(e){}
-    await loadConfig();A.token=stored(TOKEN);
-    if(A.token&&A.config.databaseConfigured){
-      try{const result=await request('me',{method:'GET'});A.user=result.user;store(CHOICE,'account');myName=A.user.nickname||myName;persistSet('pn',myName);try{await sync();}catch(e){console.warn('Steel Frontier cloud sync:',e.message);}}
-      catch(e){A.token='';A.user=null;store(TOKEN,'');}
-    }
-    updateAccountButton();
-    const choice=stored(CHOICE);if(!A.user&&choice!=='guest')open(choice==='account'?'login':'welcome');
-    const button=el('account');if(button)button.addEventListener('click',()=>open());
+    profile=readProfile();
+    if(profile){store(CHOICE_KEY,'account');myName=profile.nickname;persistSet('pn',profile.nickname);}
+    updateButton();
+    if(!profile&&stored(CHOICE_KEY)!=='guest')render('welcome');
+    const button=el('account');if(button)button.addEventListener('click',open);
   }
-  window.SteelFrontierAccount={open:open,close:close,getUser:()=>A.user};
+  window.SteelFrontierAccount={open,close,getProfile:()=>profile?Object.assign({},profile):null};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
 </script>
